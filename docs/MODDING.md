@@ -137,6 +137,17 @@ bullet hits or expires go in `WeaponBase.bulletImpact()` (keyed on `bullet.tag`)
 `setVariant()`. The generator, debug keys and `weapons_test.sh` (every type × every level must pass)
 pick it up automatically.
 
+**Add an elite type.** Add a constant before `ELITE_COUNT` in `mod_src/ObjectBase/EnemyBase.as` with a
+name and colour in `eliteNames`/`eliteColors`; give it a `case` in `updateSpecial()` (runs every update
+while it can act) and/or `deathEffects()`; restrict which enemies can have it in `canHaveElite()`.
+`MainScene.doEliteRolls` and the debug menu's SPAWN ELITES pick it up.
+
+**Add an enemy variant.** Add a `V_` constant before `VARIANT_COUNT`, a name and health multiplier
+(`variantNames`, `variantHealth`), and its host class in `variantHost()`. Put the behaviour in the host's
+`_update` (as `TurretBase` does for snipers) or in `EnemyBase.updateSpecial()`/`deathEffects()`. To place it
+in the extra missions, add it to `VARIANTS` in `modtools/gen_missions.py` (and `COST`, `BIG`), then use its
+name in a pool or in `guards`. Add the spawn to `WeaponGenerator.spawnVariants` for the debug menu.
+
 **Add a unique (legendary/mythic) weapon.** Append an entry to `WeaponGenerator.uniques`: weapon class,
 name, one-line effect text, intrinsic perks as `[kind, amount, count]`, and optional `dmg`/`rof`
 multipliers or `pierce`. Never reorder or remove entries: saved weapons refer to them by index.

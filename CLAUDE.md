@@ -65,6 +65,10 @@ Verified pitfalls:
   plus the fields their `serializeFields()` lists. New fields are fine (old saves leave them at their
   default), so give every new field a default that means "old save". `WeaponGenerator.uniques` is stored by
   index: only append to it.
+- **Some original enemy code assumes `hitBy` always gets a bullet.** `ChargeBase` and `BeserkerBase` read
+  `param1.id` while in cover, which crashed on the game's own `hitBy(null)` (exploding barrels, the Revenge
+  item) and on the mod's burn/chain/volatile damage; fixed in `mod_src`. Check any new `hitBy` override for
+  `param1 == null`.
 - **New weapon types are `variant`s of the seven weapon classes** for the same reason; `WeaponBase.variant`
   is saved and `WeaponGenerator.variants` is indexed by it, so only append to that table.
 - **Don't refer to subclasses in a base class's static initialiser** (for example a table of weapon classes
@@ -125,6 +129,9 @@ Verified pitfalls:
 | Rarity odds, max rarity per mission, unique weapons, debug keys | `mod_src/Weapons/WeaponGenerator.as` (`rarityWeights`, `maxRarity`, `uniques`, `debugUpdate`) |
 | New weapon types (MOD): stats table | `mod_src/Weapons/WeaponGenerator.as` → `variants` (host class, name, code, text, req/dmg/rof per level, icon hue) |
 | New weapon types: firing, bursts, icons | `mod_src/Weapons/WeaponBase.as` (`shootVariant`, `bulletImpact`, `iconData`, `setVariant`); each weapon class hands `name`/`playerMinLevel`/`_damage`/`_rateOfFire`/`shoot` to these when `variant > 0` |
+| Elites and enemy variants (MOD) | `mod_src/ObjectBase/EnemyBase.as` (`elite`, `variant`, `updateSpecial`, `deathEffects`, `absorbDamage`, `blocksFromFront`, `createTag`); per-class behaviour in `TurretBase` (sniper), `HoverBase` (bomber), `ChargeBase` (kamikaze); rolls in `MainScene.doEliteRolls`; mission data `index + 1000 × variant` decoded in `MainScene.initLevel` |
+| The Overlord (MOD) | `mod_src/ObjectBase/BossBase.as` (`updateOverlord`, `overlordFlyAway`, `overlordTint`; any boss in episode 13+, or `forceOverlord` for debug spawns) |
+| Debug menu (MOD) | `mod_src/InventoryScreen/PauseMenu.as` (`debugMode`); opened from `MainScene` (F2, `` ` ``) and the pause menu; room jumps in `MainScene.debugWarp` |
 | Bullet behaviour hooks (MOD): life, drag, blast, pierce, homing, damageMult, impact | `mod_src/ObjectBase/BulletBase.as`; railgun line hits in `LaserBulletBase`; grenade wall impact in `GrenadeBulletBase` |
 | New perks (MOD): burn, chain, crit, multishot, homing, siphon, volatile | `mod_src/WeaponPlugin/WeaponPluginSplash.as` (`kind`); effects in `EnemyBase` (burn, crit/kill hooks in `hitBy`), `BulletBase.steer` (homing), `WeaponBase.fire` (multishot), `WeaponBase.onKill` |
 | Original level data | `decompiled/scripts/Levels/` (parsed to `modtools/levels.json` by `parse_levels.py`) |
@@ -141,13 +148,20 @@ they share `modtools/game.sh`: `game_start`, `game_mission X Y`, `x …`, `game_
   screenshots the drops, firing, inventory and two tooltips (`build/rarity_*.png`).
 - `modtools/perk_test.sh`: three rounds of equip uniques + spawn enemies + shoot; prints how often each perk
   triggered (`build/perk_*.png`).
+- `modtools/enemies_test.sh`: every elite and every variant spawned in Mission 1, shot at, cleared with the
+  debug menu's KILL ENEMIES; the Overlord spawned (`build/enemies_*.png`).
+- `modtools/boss_test.sh`: Mission 17 through the debug menu (god mode, level 51, mythic Titan lasers, NEXT
+  ROOM twice, GO TO EXIT) and the Overlord fought down through its phases (`build/boss_*.png`).
 - `modtools/shop_test.sh`: opens the shop in Mission 13 at player level 1 and 51 and lists its stock
   (`build/shop.png`, `build/shop_late.png`).
 
 Debug-build keys (`WeaponGenerator.debugKeys`): G drop next rarity, H drop next unique, J equip next four
 uniques, K spawn three grunts and a hulk, L save round-trip check, O open the shop, N equip the next four
-weapon types, V check every type at every level, U fill the inventory with every type, I god mode, P +10
-player levels (and restock the shop). Weapons generated and
+weapon types, V check every type at every level, U fill the inventory with every type, Z god mode, X +10
+player levels (and restock the shop), R spawn every elite, B every variant, C the Overlord, T raise the
+tier they spawn at. **The game itself uses I, Q (inventory), M, E (map), P, Esc (pause), Space and Enter**:
+never bind those. The debug menu (F2 or `` ` ``, also in the release build) covers the same ground with
+buttons; tests click it at stage `(160 + 240 × (i % 3), 100 + 46 × (i / 3))` for button `i` (+22 px on screen). Weapons generated and
 perks triggered are `trace`d to Ruffle's log (`WEAPON …`, `PERK …`, `SAVE …`).
 
 Headless machines (no Xephyr, no `$DISPLAY`): the smoke test starts `Xvfb :99` instead, and `vshot.sh`

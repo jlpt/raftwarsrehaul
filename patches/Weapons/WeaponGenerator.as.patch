@@ -1,6 +1,6 @@
 --- a/Weapons/WeaponGenerator.as
 +++ b/Weapons/WeaponGenerator.as
-@@ -1,7 +1,17 @@
+@@ -1,7 +1,24 @@
  package Weapons
  {
     import GameScene.GameScene;
@@ -9,8 +9,15 @@
 +   import ObjectBase.EnemyBase;
 +   import ObjectBase.PickupWeapon;
 +   import ObjectBase.PlayerBase;
++   import ObjectBase.BossBase;
++   import Objects.Boss;
++   import Objects.Charge;
 +   import Objects.Grunt;
++   import Objects.GunFighter;
++   import Objects.Hover;
 +   import Objects.Hulk;
++   import Objects.Spider;
++   import Objects.Turret;
     import Scenes.MainScene;
 +   import Serialization.SerializedObject;
 +   import Serialization.StoreObject;
@@ -18,7 +25,7 @@
     import Tools.Random;
     import WeaponPlugin.WeaponPluginBase;
     import WeaponPlugin.WeaponPluginFlyThrough;
-@@ -9,159 +19,601 @@
+@@ -9,159 +26,681 @@
     import WeaponPlugin.WeaponPluginKnockback;
     import WeaponPlugin.WeaponPluginRateOfFire;
     import WeaponPlugin.WeaponPluginSpeed;
@@ -29,8 +36,10 @@
 +
     public class WeaponGenerator
     {
+-      
 +
-+      public static var weaponClasses:Array = [Laser,Blaster,Grenade,Shotgun,PulseGun,Knockback,LaserMinelayer];
+       public static var weaponClasses:Array = [Laser,Blaster,Grenade,Shotgun,PulseGun,Knockback,LaserMinelayer];
+-      
 +
 +      // MOD: where a weapon comes from; decides its rarity odds
 +      public static const FROM_DROP:int = 0;
@@ -81,18 +90,21 @@
 +      // unique, J equips the next four uniques, K spawns three grunts and a hulk to the right, L checks the
 +      // equipped weapons survive the save format, O opens the shop, N equips the next four weapon types
 +      // (all types at light, then all at medium, ...), V builds, draws and fires every type at every level
-+      // and traces the result, I toggles god mode, U fills the inventory with every type, P adds 10 player
-+      // levels. Every weapon made and every perk that triggers is traced to the log.
++      // and traces the result, U fills the inventory with every type, Z toggles god mode, X adds 10 player
++      // levels, R spawns one grunt per elite type, B one enemy per variant, C the Overlord, T raises the
++      // tier of what R/B/C spawn. (The game itself uses I, Q, M, E, P, Esc, Space and Enter.) Every weapon made and every perk that triggers is traced to the log.
 +      public static var debugKeys:Boolean = false;
 +
 +      public static var debugRarity:int = 0;
 +
 +      public static var debugUnique:int = 0;
-       
--      public static var weaponClasses:Array = [Laser,Blaster,Grenade,Shotgun,PulseGun,Knockback,LaserMinelayer];
++      
 +      public static var debugType:int = 0;
-       
++      
 +      public static var debugGod:Boolean = false;
++      
++      // tier of the enemies the debug menu and keys spawn
++      public static var debugTier:int = 0;
 +
        public function WeaponGenerator()
        {
@@ -170,18 +182,24 @@
                       }
                    }
 -                  if(!forShop)
--                  {
--                     if(weaponClasses[c] == PulseGun)
 +                  else if(forShop)
-+                  {
+                   {
+-                     if(weaponClasses[c] == PulseGun)
 +                     if(req > minLevel || req < playerLevel - 5 && !(t[0] == PulseGun && t[1] == 0))
                       {
 -                        if(variance % 5 != 0)
+-                        {
+-                           continue;
+-                        }
 +                        w = 0;
-+                     }
-+                  }
+                      }
+                   }
+-                  wb = new weaponClasses[c]();
+-                  addPlugins(wb);
+-                  if(forceRare)
 +                  else if(req > maxLevel || !relaxed && req < playerLevel - 18)
-+                  {
+                   {
+-                     while(wb.properPluginCount() < 2)
 +                     // drops: anything usable, but late in the game not the very weakest
 +                     w = 0;
 +                  }
@@ -519,13 +537,30 @@
 +               }
 +            }
 +         }
-+         if(Input.i.keyHit(80))
++         if(Input.i.keyHit(88))
 +         {
 +            param1.level += 10;
 +            Shop.lastObjects = null; // restock the shop for the new level
 +            trace("DEBUG player level " + param1.level);
 +         }
-+         if(Input.i.keyHit(73))
++         if(Input.i.keyHit(82))
++         {
++            spawnElites(param1);
++         }
++         if(Input.i.keyHit(66))
++         {
++            spawnVariants(param1);
++         }
++         if(Input.i.keyHit(67))
++         {
++            spawnBoss(param1);
++         }
++         if(Input.i.keyHit(84))
++         {
++            debugTier = (debugTier + 1) % (EnemyBase.MAX_TOUGHNESS + 1);
++            trace("DEBUG enemy tier " + debugTier);
++         }
++         if(Input.i.keyHit(90))
 +         {
 +            debugGod = !debugGod;
 +            trace("DEBUG god mode " + debugGod);
@@ -570,6 +605,65 @@
 +         }
 +      }
 +
++      // MOD: elites drop a weapon with chest odds (rare or better)
++      public static function generateEliteWeapon(param1:int) : WeaponBase
++      {
++         var _loc2_:WeaponBase = generateWeapon(40,param1);
++         applyRarity(_loc2_,rollRarity(FROM_CHEST));
++         return _loc2_;
++      }
++      
++      // MOD: debug spawns, used by the keys and the debug menu (PauseMenu). Positions are in a grid to the
++      // right of (or left of, near the right wall) the player.
++      public static function debugSpot(param1:PlayerBase, param2:int) : Array
++      {
++         var _loc3_:MainScene = MainScene(param1.gs);
++         var _loc4_:int = param1.basex > (_loc3_.startx + _loc3_.endx) / 2 ? -1 : 1;
++         return [Math.max(_loc3_.startx + 60,Math.min(_loc3_.endx - 60,param1.basex + _loc4_ * (150 + 70 * (param2 % 4)))),Math.max(_loc3_.starty + 60,Math.min(_loc3_.endy - 60,param1.basey - 80 + 90 * int(param2 / 4)))];
++      }
++      
++      public static function spawnElites(param1:PlayerBase) : void
++      {
++         var _loc3_:EnemyBase = null;
++         var _loc4_:Array = null;
++         var _loc2_:int = 1;
++         while(_loc2_ < EnemyBase.ELITE_COUNT)
++         {
++            _loc4_ = debugSpot(param1,_loc2_ - 1);
++            _loc3_ = new Grunt(param1.gs,_loc4_[0],_loc4_[1]);
++            _loc3_.setupDifficulty(debugTier);
++            _loc3_.makeElite(_loc2_);
++            _loc2_++;
++         }
++         trace("PERK spawned elites tier " + debugTier);
++      }
++      
++      public static function spawnVariants(param1:PlayerBase) : void
++      {
++         var _loc3_:EnemyBase = null;
++         var _loc4_:Array = null;
++         var _loc5_:Array = [null,Turret,Hover,Hulk,Spider,Charge,GunFighter];
++         var _loc2_:int = 1;
++         while(_loc2_ < EnemyBase.VARIANT_COUNT)
++         {
++            _loc4_ = debugSpot(param1,_loc2_ - 1);
++            _loc3_ = new _loc5_[_loc2_](param1.gs,_loc4_[0],_loc4_[1]);
++            _loc3_.variant = _loc2_;
++            _loc3_.setupDifficulty(debugTier);
++            _loc2_++;
++         }
++         trace("PERK spawned variants tier " + debugTier);
++      }
++      
++      public static function spawnBoss(param1:PlayerBase) : void
++      {
++         var _loc2_:Array = debugSpot(param1,1);
++         BossBase.forceOverlord = true;
++         var _loc3_:EnemyBase = new Boss(param1.gs,_loc2_[0],_loc2_[1]);
++         _loc3_.setupDifficulty(0);
++         trace("PERK spawned boss health " + _loc3_.health);
++      }
++      
 +      // MOD: debug: every weapon type at every level must build, describe, draw and fire without errors
 +      public static function debugCheckAll(param1:PlayerBase) : void
 +      {
@@ -638,25 +732,16 @@
 +                  {
 +                     _loc7_ = new Array();
 +                     for each(var _loc8_:Array in _loc6_[1])
-+                     {
+                      {
+-                        addPlugins(wb);
 +                        _loc7_.push([_loc8_[0],_loc8_[1].filter(function(param1:Object, param2:int, param3:Array):Boolean
-                         {
--                           continue;
--                        }
++                        {
 +                           return param1[0] == "isIntrinsic" || param1[0] == "percent";
 +                        })]);
                       }
--                  }
--                  wb = new weaponClasses[c]();
--                  addPlugins(wb);
--                  if(forceRare)
--                  {
--                     while(wb.properPluginCount() < 2)
--                     {
--                        addPlugins(wb);
--                     }
 -                     wb.level = 2;
--                  }
++                     _loc5_.push(["plugins",_loc7_,"Array"]);
+                   }
 -                  possibilities.push(wb);
 -               }
 -               c++;
@@ -736,8 +821,6 @@
 -         b = new Blaster();
 -         b.level = 0;
 -         return b;
-+                     _loc5_.push(["plugins",_loc7_,"Array"]);
-+                  }
 +                  else if(_loc6_[0] != "rarity" && _loc6_[0] != "unique")
 +                  {
 +                     _loc5_.push(_loc6_);
@@ -750,7 +833,7 @@
        }
        
        public static function generateItem(param1:int = 40, param2:Boolean = false) : ItemBase
-@@ -193,7 +645,7 @@
+@@ -193,7 +732,7 @@
           }
           return null;
        }
@@ -759,7 +842,7 @@
        public static function dodgyPoisson(param1:int) : int
        {
           var _loc2_:int = 0;
-@@ -208,7 +660,8 @@
+@@ -208,7 +747,8 @@
           }
           return _loc2_;
        }
@@ -769,7 +852,7 @@
        public static function addPlugins(param1:WeaponBase) : void
        {
           var wb:WeaponBase = param1;
-@@ -239,4 +692,3 @@
+@@ -239,4 +779,3 @@
        }
     }
  }

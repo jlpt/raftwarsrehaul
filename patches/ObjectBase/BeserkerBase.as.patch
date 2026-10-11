@@ -1,0 +1,13 @@
+--- a/ObjectBase/BeserkerBase.as
++++ b/ObjectBase/BeserkerBase.as
+@@ -124,7 +124,9 @@
+       {
+          if(inCover != 0)
+          {
+-            if(blah[param1.id] != "asdf")
++            // MOD: damage without a bullet (explosions, burning, the Revenge item) is blocked by the cover
++            // instead of crashing on param1.id
++            if(param1 && blah[param1.id] != "asdf")
+             {
+                blah[param1.id] = "asdf";
+                pushBack(param1.baseRotation,3);

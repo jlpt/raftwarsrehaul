@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 . modtools/game.sh
 game_start "${1:-build/robokill_debug.swf}" build/perk.log
 game_mission 110 316                              # MISSION 1
-x key i                                           # god mode
+x key z                                           # god mode
 for round in 1 2 3; do
     x key j; sleep 0.5; x key k; sleep 1
     x hold 630 322 2500

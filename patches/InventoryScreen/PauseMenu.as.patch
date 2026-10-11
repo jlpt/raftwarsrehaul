@@ -1,0 +1,400 @@
+--- a/InventoryScreen/PauseMenu.as
++++ b/InventoryScreen/PauseMenu.as
+@@ -3,30 +3,90 @@
+    import GameObject.GameObject;
+    import GameScene.GameScene;
+    import Layout.LayerFilter;
++   import ObjectBase.BossBase;
++   import ObjectBase.EnemyBase;
++   import ObjectBase.PlayerBase;
++   import Objects.Boss;
++   import Objects.Grunt;
++   import Objects.Hulk;
+    import Scenes.MainMenu;
++   import Scenes.MainScene;
+    import Tools.GraphicsTools;
+-   
++   import Weapons.WeaponBase;
++   import Weapons.WeaponGenerator;
++
++   // MOD: the pause menu has a second mode, the debug menu (F2 or the ` key in a mission, or DEBUG MENU in
++   // the pause menu): money, levels, god mode, any weapon at any level and rarity, and enemy spawns.
+    public class PauseMenu extends HUDDisplay
+    {
+-      
++
++      public static var debugMode:Boolean = false;
++
++      // set by the DEBUG MENU button; MainScene opens the debug menu once the pause menu has closed
++      public static var openDebugNext:Boolean = false;
++
++      // weapon picker: index into pickerEntries(), level 0-3, rarity 0-5
++      public static var pickType:int = 0;
++
++      public static var pickLevel:int = 2;
++
++      public static var pickRarity:int = 0;
++
+       public var hasQuit:Boolean = false;
+-      
++
+       public var pText:GameObject;
+-      
++
+       public var quit:GameObject;
+-      
++
++      public var debugButton:GameObject;
++
++      public var buttons:Object = new Object();
++
++      public var status:GameObject;
++
++      public var pickText:GameObject;
++
+       public function PauseMenu(param1:GameScene)
+       {
+          super(param1,GraphicsTools.createFilledSprite(1,1,0),"TextLayer",400,300);
+       }
+-      
++
++      // every weapon type, then every unique (legendary/mythic only)
++      public static function pickerEntries() : Array
++      {
++         var _loc2_:int = 0;
++         var _loc1_:Array = WeaponGenerator.allTypes().slice();
++         _loc2_ = 0;
++         while(_loc2_ < WeaponGenerator.uniques.length)
++         {
++            _loc1_.push([WeaponGenerator.uniques[_loc2_].cls,0,_loc2_]);
++            _loc2_++;
++         }
++         return _loc1_;
++      }
++
+       override public function _kill() : void
+       {
++         var _loc1_:Object = null;
++         if(debugMode)
++         {
++            for each(_loc1_ in buttons)
++            {
++               LayerFilter.reverse(_loc1_);
++            }
++            LayerFilter.reverse(status);
++            LayerFilter.reverse(pickText);
++            debugMode = false;
++         }
++         else
++         {
++            LayerFilter.reverse(debugButton);
++         }
+          LayerFilter.reverse(quit);
+          LayerFilter.reverse(pText);
+          super._kill();
+       }
+-      
++
+       override public function createButton(param1:String, param2:int, param3:int) : GameObject
+       {
+          var _loc4_:GameObject = null;
+@@ -37,7 +97,7 @@
+          slide(_loc4_);
+          return _loc4_;
+       }
+-      
++
+       override public function _update() : void
+       {
+          if(!hasQuit)
+@@ -48,24 +108,286 @@
+                gs.pushScene(new MainMenu(),true);
+             }
+          }
++         if(debugButton && debugButton.mHit())
++         {
++            openDebugNext = true;
++            kill();
++         }
++         if(debugMode && !killed)
++         {
++            updateDebug();
++         }
+          super._update();
+       }
+-      
++
+       override public function createOK() : GameObject
+       {
++         if(debugMode)
++         {
++            return createButton("CLOSE",400,540);
++         }
+          return createButton("CONTINUE",400,330);
+       }
+-      
++
+       override public function _open(param1:GameScene) : void
+       {
++         if(debugMode)
++         {
++            openDebug(param1);
++            return;
++         }
+          quit = createButton("MAIN MENU",400,270);
++         debugButton = createButton("DEBUG MENU",400,390);
+          pText = MainMenu.createNormalText(param1,"GAME PAUSED",40);
+          pText.basex = 400;
+          pText.basey = 240;
+          pText.updateDespitePaused = true;
+-         param1.vert([pText,quit,ok],16,400,300);
++         param1.vert([pText,quit,ok,debugButton],16,400,300);
+          slide(pText);
++      }
++
++      public function openDebug(param1:GameScene) : void
++      {
++         var _loc2_:Array = [["cash1","+$10,000"],["cash2","+$100,000"],["shield","REFILL SHIELD"],["lvl1","+1 LEVEL"],["lvl10","+10 LEVELS"],["god","GOD MODE"],["prev","< WEAPON"],["next","WEAPON >"],["give","GIVE WEAPON"],["level","LEVEL"],["rarity","RARITY"],["all","ALL WEAPON TYPES"],["kill","KILL ENEMIES"],["elites","SPAWN ELITES"],["variants","SPAWN VARIANTS"],["boss","SPAWN BOSS"],["tier","ENEMY TIER +1"],["room","NEXT ROOM"],["exit","GO TO EXIT"],["equip","EQUIP X4"],["quitgame","MAIN MENU"]];
++         var _loc3_:int = 0;
++         pText = MainMenu.createNormalText(param1,"DEBUG MENU",32);
++         pText.basex = 400;
++         pText.basey = 40;
++         pText.updateDespitePaused = true;
++         slide(pText);
++         while(_loc3_ < _loc2_.length)
++         {
++            buttons[_loc2_[_loc3_][0]] = createButton(_loc2_[_loc3_][1],160 + 240 * (_loc3_ % 3),100 + 46 * int(_loc3_ / 3));
++            _loc3_++;
++         }
++         quit = buttons["quitgame"];
++         pickText = MainMenu.createNormalText(param1,"",14);
++         pickText.basex = 400;
++         pickText.basey = 432;
++         pickText.updateDespitePaused = true;
++         slide(pickText);
++         status = MainMenu.createNormalText(param1,"",14);
++         status.basex = 400;
++         status.basey = 466;
++         status.updateDespitePaused = true;
++         slide(status);
++         refresh("");
++      }
++
++      public function player() : PlayerBase
++      {
++         return MainScene(gs).player;
++      }
++
++      // the picked weapon, described, and the player's numbers
++      public function refresh(param1:String) : void
++      {
++         var _loc2_:WeaponBase = pickedWeapon();
++         pickText.setText("WEAPON: " + WeaponBase.rarityNames[_loc2_.effectiveRarity()] + " " + _loc2_.displayName() + "  (REQ. LEVEL " + (_loc2_.playerMinLevel() + 1) + ")",14);
++         buttons["god"].setButtonText(WeaponGenerator.debugGod ? "GOD MODE: ON" : "GOD MODE: OFF");
++         buttons["level"].setButtonText("LEVEL: " + WeaponBase.levelNames[pickLevel]);
++         buttons["rarity"].setButtonText(WeaponBase.rarityNames[pickRarity]);
++         buttons["tier"].setButtonText("ENEMY TIER: " + WeaponGenerator.debugTier);
++         var _loc3_:int = 0;
++         for each(var _loc4_:Object in player().inventory)
++         {
++            if(_loc4_)
++            {
++               _loc3_++;
++            }
++         }
++         status.setText((param1 != "" ? param1 + "   " : "") + "LEVEL " + player().level + "   CASH $" + player().money + "   INVENTORY " + _loc3_ + "/" + player().inventory.length,14);
++      }
++
++      public function pickedWeapon() : WeaponBase
++      {
++         var _loc1_:Array = pickerEntries()[pickType];
++         var _loc2_:WeaponBase = new _loc1_[0]();
++         _loc2_.level = pickLevel;
++         _loc2_.setVariant(_loc1_[1]);
++         if(_loc1_.length > 2)
++         {
++            WeaponGenerator.applyRarity(_loc2_,Math.max(WeaponBase.LEGENDARY,pickRarity),_loc1_[2]);
++         }
++         else
++         {
++            WeaponGenerator.applyRarity(_loc2_,pickRarity);
++         }
++         return _loc2_;
++      }
++
++      public function updateDebug() : void
++      {
++         var _loc1_:String = null;
++         var _loc2_:PlayerBase = player();
++         var _loc3_:WeaponBase = null;
++         var _loc4_:int = pickerEntries().length;
++         if(buttons["cash1"].mHit())
++         {
++            _loc2_.money += 10000;
++            _loc1_ = "+$10,000";
++         }
++         if(buttons["cash2"].mHit())
++         {
++            _loc2_.money += 100000;
++            _loc1_ = "+$100,000";
++         }
++         if(buttons["shield"].mHit())
++         {
++            _loc2_.shields = 1;
++            _loc2_.setHud();
++            _loc1_ = "SHIELD FULL";
++         }
++         if(buttons["lvl1"].mHit())
++         {
++            _loc1_ = addLevels(1);
++         }
++         if(buttons["lvl10"].mHit())
++         {
++            _loc1_ = addLevels(10);
++         }
++         if(buttons["god"].mHit())
++         {
++            WeaponGenerator.debugGod = !WeaponGenerator.debugGod;
++            _loc1_ = WeaponGenerator.debugGod ? "YOU TAKE NO DAMAGE" : "DAMAGE IS BACK ON";
++         }
++         if(buttons["prev"].mHit())
++         {
++            pickType = (pickType + _loc4_ - 1) % _loc4_;
++            _loc1_ = "";
++         }
++         if(buttons["next"].mHit())
++         {
++            pickType = (pickType + 1) % _loc4_;
++            _loc1_ = "";
++         }
++         if(buttons["level"].mHit())
++         {
++            pickLevel = (pickLevel + 1) % 4;
++            _loc1_ = "";
++         }
++         if(buttons["rarity"].mHit())
++         {
++            pickRarity = (pickRarity + 1) % (WeaponBase.MYTHIC + 1);
++            _loc1_ = "";
++         }
++         if(buttons["give"].mHit())
++         {
++            _loc3_ = pickedWeapon();
++            _loc1_ = _loc2_.addToInventory(_loc3_) ? "ADDED " + _loc3_.displayName() : "INVENTORY FULL";
++         }
++         if(buttons["equip"].mHit())
++         {
++            _loc4_ = 0;
++            while(_loc4_ < 4)
++            {
++               _loc2_.weapons[_loc4_] = pickedWeapon();
++               _loc4_++;
++            }
++            _loc1_ = "EQUIPPED 4 X " + _loc2_.weapons[0].displayName();
++         }
++         if(buttons["all"].mHit())
++         {
++            _loc1_ = "ADDED " + giveAllTypes() + " WEAPONS";
++         }
++         if(buttons["kill"].mHit())
++         {
++            _loc1_ = "KILLED " + killEnemies() + " ENEMIES";
++         }
++         if(buttons["elites"].mHit())
++         {
++            spawnTest(true);
++            _loc1_ = "ELITES WAITING";
++         }
++         if(buttons["variants"].mHit())
++         {
++            spawnTest(false);
++            _loc1_ = "VARIANTS WAITING";
++         }
++         if(buttons["boss"].mHit())
++         {
++            WeaponGenerator.spawnBoss(_loc2_);
++            _loc1_ = "BOSS WAITING";
++         }
++         if(buttons["tier"].mHit())
++         {
++            WeaponGenerator.debugTier = (WeaponGenerator.debugTier + 1) % (EnemyBase.MAX_TOUGHNESS + 1);
++            _loc1_ = "";
++         }
++         var _loc5_:Boolean = buttons["exit"].mHit();
++         if(buttons["room"].mHit() || _loc5_)
++         {
++            MainScene(gs).debugWarp(_loc5_);
++            kill();
++            return;
++         }
++         if(_loc1_ != null)
++         {
++            refresh(_loc1_);
++         }
++      }
++
++      public function addLevels(param1:int) : String
++      {
++         var _loc2_:PlayerBase = player();
++         _loc2_.level += param1;
++         _loc2_.experience = 0;
++         _loc2_.queuedExperience = 0;
++         _loc2_.setHud();
++         Shop.lastObjects = null;
++         return "NOW LEVEL " + _loc2_.level;
++      }
++
++      // one of every weapon type (at the picked level and rarity) into the free inventory slots
++      public function giveAllTypes() : int
++      {
++         var _loc2_:Array = null;
++         var _loc3_:WeaponBase = null;
++         var _loc1_:int = 0;
++         for each(_loc2_ in WeaponGenerator.allTypes())
++         {
++            _loc3_ = new _loc2_[0]();
++            _loc3_.level = pickLevel;
++            _loc3_.setVariant(_loc2_[1]);
++            WeaponGenerator.applyRarity(_loc3_,pickRarity);
++            if(!player().addToInventory(_loc3_))
++            {
++               break;
++            }
++            _loc1_++;
++         }
++         return _loc1_;
++      }
++
++      public function killEnemies() : int
++      {
++         var _loc2_:Object = null;
++         var _loc3_:EnemyBase = null;
++         var _loc1_:int = 0;
++         for each(_loc2_ in gs.objects)
++         {
++            _loc3_ = _loc2_ as EnemyBase;
++            if(_loc3_ && !_loc3_._killed && !_loc3_._removed)
++            {
++               // bosses lose a fifth of their health per click, so their phases can be seen
++               _loc3_.hitBy(null,Math.max(1,_loc3_ is BossBase ? _loc3_.totalHealth * 0.2 + 1 : _loc3_.health + 1 + _loc3_.eliteShield));
++               _loc1_++;
++            }
++         }
++         return _loc1_;
++      }
++
++      // test enemies a little way to the right of the player: every elite on a grunt, or every variant
++      public function spawnTest(param1:Boolean) : void
++      {
++         if(param1)
++         {
++            WeaponGenerator.spawnElites(player());
++         }
++         else
++         {
++            WeaponGenerator.spawnVariants(player());
++         }
+       }
+    }
+ }
+-

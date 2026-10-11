@@ -1,0 +1,182 @@
+--- a/ObjectBase/BossBase.as
++++ b/ObjectBase/BossBase.as
+@@ -22,6 +22,7 @@
+    import Scenes.MainScene;
+    import Tools.Interpolation;
+    import Tools.Random;
++   import Weapons.WeaponGenerator;
+    import flash.display.Bitmap;
+    import flash.geom.Point;
+    
+@@ -69,6 +70,15 @@
+       public var drillEndChannel:GameSoundChannel;
+       
+       public var legFrame:int = 0;
++
++      // MOD: the Overlord: this boss in the extra missions (episode 13 and up) gets its own fight:
++      // streams, bullet rings, missile volleys and flights, faster each third of its health
++      public var overlordPhase:int = -1;
++
++      // debug spawns (debug menu, key C) fight like the Overlord in any mission
++      public static var forceOverlord:Boolean = false;
++
++      public var overlordTag:GameObject;
+       
+       public function BossBase(param1:GameScene, param2:Class, param3:String, param4:int, param5:int)
+       {
+@@ -85,6 +95,10 @@
+          {
+             baseHealth *= 1.5;
+          }
++         if(MainScene(param1).currentEpisode >= 13)
++         {
++            baseHealth *= 4 + (MainScene(param1).currentEpisode - 13);
++         }
+       }
+       
+       public function updateLastRoom() : void
+@@ -183,7 +197,114 @@
+       
+       override public function tintRed(param1:Boolean = false) : Number
+       {
+-         return 1;
++         return isOverlord() ? overlordTint(0) : 1;
++      }
++
++      public function isOverlord() : Boolean
++      {
++         return gs && (MainScene(gs).currentEpisode >= 13 || forceOverlord);
++      }
++
++      // a fixed hue rotation (towards violet) of the boss sprite, slightly darkened
++      public function overlordTint(param1:int) : Number
++      {
++         var _loc2_:Number = Math.cos(-1.75);
++         var _loc3_:Number = Math.sin(-1.75) / Math.sqrt(3);
++         return 0.95 * [(1 + 2 * _loc2_) / 3,(1 - _loc2_) / 3 - _loc3_,(1 - _loc2_) / 3 + _loc3_][param1];
++      }
++
++      public function updateOverlord() : void
++      {
++         var _loc1_:int = 0;
++         var _loc2_:int = 0;
++         var _loc3_:int = 0;
++         if(!overlordTag)
++         {
++            overlordTag = new GameObject(gs,null,"AbovePlayer",0,-80);
++            overlordTag.fontName = "Pixelation-34";
++            overlordTag.setText("THE OVERLORD",7,16731482);
++            overlordTag.tformFromParent = false;
++            overlordTag.independentRotation = true;
++            addChild(overlordTag);
++         }
++         if(MainScene(gs).player._removed || MainScene(gs).fading)
++         {
++            return;
++         }
++         ++fireTicks;
++         _loc1_ = health > totalHealth * 0.66 ? 0 : (health > totalHealth * 0.33 ? 1 : 2);
++         if(WeaponGenerator.debugKeys && fireTicks % 300 == 0)
++         {
++            trace("PERK boss health " + health + " / " + totalHealth + " phase " + _loc1_);
++         }
++         if(_loc1_ != overlordPhase)
++         {
++            if(overlordPhase >= 0)
++            {
++               spawnArmy(2 + _loc1_);
++               overlordFlyAway();
++            }
++            overlordPhase = _loc1_;
++         }
++         if(_loc1_ >= 1 && fireTicks % 900 == 450 && armyCount() < 6)
++         {
++            spawnArmy(2);
++         }
++         if(flying)
++         {
++            return;
++         }
++         baseRotation = angleToObject(MainScene(gs).player) + 90;
++         _loc2_ = _loc1_ == 2 ? 360 : 480;
++         _loc3_ = fireTicks % _loc2_;
++         if(_loc3_ < 120)
++         {
++            if(_loc3_ % (_loc1_ == 2 ? 6 : 10) == 0)
++            {
++               shootBullet(_loc3_ % 20 < 10 ? -25 : 25,-50,2);
++            }
++         }
++         else if(_loc3_ >= 150 && _loc3_ < 270)
++         {
++            if(_loc3_ % 40 == 30)
++            {
++               ringShot(16 + 4 * _loc1_,1.2 + 0.2 * _loc1_);
++            }
++         }
++         else if(_loc3_ >= 290 && _loc3_ < 340)
++         {
++            if(_loc3_ % 12 == 2)
++            {
++               shootMissile(_loc3_ % 24 < 12 ? -25 : 25,-50);
++            }
++         }
++         if(_loc3_ == _loc2_ - 20)
++         {
++            overlordFlyAway();
++         }
++      }
++
++      // fly to a spot in the room well away from the player
++      public function overlordFlyAway() : void
++      {
++         var _loc3_:Number = NaN;
++         var _loc4_:Number = NaN;
++         var _loc1_:MainScene = MainScene(gs);
++         var _loc2_:int = 0;
++         while(_loc2_ < 40)
++         {
++            _loc3_ = _loc1_.startx + 120 + Math.random() * Math.max(1,_loc1_.endx - _loc1_.startx - 240);
++            _loc4_ = _loc1_.starty + 120 + Math.random() * Math.max(1,_loc1_.endy - _loc1_.starty - 240);
++            if(_loc1_.player.distanceToPoint(_loc3_,_loc4_) > 220 && distanceToPoint(_loc3_,_loc4_) > 150 || _loc2_ == 39)
++            {
++               flyingDestX = _loc3_;
++               flyingDestY = _loc4_;
++               flying = true;
++               lastFlew = ticks;
++               return;
++            }
++            _loc2_++;
++         }
+       }
+       
+       public function updateDrill() : void
+@@ -430,7 +551,7 @@
+       
+       override public function tintGreen(param1:Boolean = false) : Number
+       {
+-         return 0;
++         return isOverlord() ? overlordTint(1) : 0;
+       }
+       
+       override public function kill() : void
+@@ -511,6 +632,10 @@
+          {
+             updateLastRoom();
+          }
++         if((_loc1_ >= 13 || forceOverlord) && dying == 0)
++         {
++            updateOverlord(); // MOD
++         }
+          if(onShuttle)
+          {
+             if(ticks == 50)
+@@ -662,7 +787,7 @@
+       
+       override public function tintBlue(param1:Boolean = false) : Number
+       {
+-         return 0;
++         return isOverlord() ? overlordTint(2) : 0;
+       }
+       
+       public function setup() : void

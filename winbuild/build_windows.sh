@@ -6,7 +6,8 @@ set -e
 cd "$(dirname "$0")"
 toolchain=$(echo "$PWD"/toolchain/llvm-mingw-*/bin)
 # Java (the JRE bundled for JPEXS) is needed by Ruffle's build to compile its playerglobal library.
-export PATH="$toolchain:$PWD/../tools/jre/bin:$PATH"
+java_dir=$PWD/../tools/jre/bin; [ -x "$java_dir/java" ] || java_dir=$(dirname "$(command -v java)")
+export PATH="$toolchain:$java_dir:$PATH"
 export CARGO_TARGET_X86_64_PC_WINDOWS_GNULLVM_LINKER=x86_64-w64-mingw32-clang
 # Link libunwind statically so the exe doesn't need any DLLs from llvm-mingw.
 export CARGO_TARGET_X86_64_PC_WINDOWS_GNULLVM_RUSTFLAGS="-C target-feature=+crt-static"

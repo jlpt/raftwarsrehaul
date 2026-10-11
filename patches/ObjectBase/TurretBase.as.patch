@@ -1,0 +1,80 @@
+--- a/ObjectBase/TurretBase.as
++++ b/ObjectBase/TurretBase.as
+@@ -1,11 +1,14 @@
+ package ObjectBase
+ {
+    import Audio.GameSound;
++   import GameObject.GameObject;
+    import GameObject.GameObjectFilterRecoil;
+    import GameObject.GameObjectFilterRotateSlowly;
+    import GameScene.GameScene;
+    import Scenes.MainScene;
+    import Tools.Interpolation;
++   import flash.display.Bitmap;
++   import flash.display.BitmapData;
+    
+    public class TurretBase extends EnemyBase
+    {
+@@ -15,6 +18,9 @@
+       public var side:Boolean = false;
+       
+       public var offset:int = Math.random() * 200;
++
++      // MOD: sniper turrets show a laser sight for a second, then fire one fast heavy shot
++      public var sight:GameObject;
+       
+       public function TurretBase(param1:GameScene, param2:Class, param3:String, param4:int, param5:int)
+       {
+@@ -40,6 +46,12 @@
+          var _loc1_:Boolean = false;
+          if(blockUpdating())
+          {
++            super._update();
++            return;
++         }
++         if(variant == V_SNIPER)
++         {
++            updateSniper();
+             super._update();
+             return;
+          }
+@@ -80,6 +92,39 @@
+          }
+       }
+       
++      public function updateSniper() : void
++      {
++         var _loc2_:EnemyBulletBase = null;
++         var _loc1_:int = (randTicks + offset) % 260;
++         if(!sight)
++         {
++            sight = new GameObject(gs,new Bitmap(new BitmapData(2,700,true,4294910532)),"AbovePlayer",0,-12);
++            sight.baseHandleY = 1;
++            sight.additive = true;
++            addChild(sight);
++         }
++         sight.baseAlpha = 0;
++         if(frozen || !canAct())
++         {
++            return;
++         }
++         baseRotation = angleToObject(MainScene(gs).player) + 90;
++         if(_loc1_ >= 150 && _loc1_ < 230)
++         {
++            sight.baseAlpha = 0.15 + 0.5 * (_loc1_ - 150) / 80 * (ticks % 6 < 3 ? 1 : 0.6);
++         }
++         if(_loc1_ == 230)
++         {
++            _loc2_ = shootBullet(0,-offsetY(),3.2);
++            if(_loc2_)
++            {
++               _loc2_.damageMult = 3;
++               _loc2_.baseRotation = modifiedRotation;
++               addFilter(new GameObjectFilterRecoil(10,-8));
++            }
++         }
++      }
++
+       override public function _experience() : int
+       {
+          return 40;

@@ -10,7 +10,7 @@
        
        public var messageQueue:Array = null;
        
-@@ -846,6 +849,60 @@
+@@ -846,6 +849,184 @@
              assignDifficultyToGroup(Inertia,3,1);
              assignDifficultyToGroup(Beserker,1);
           }
@@ -18,24 +18,148 @@
 +         {
 +            doExtraEnemyDifficulty();
 +         }
++         doEliteRolls(); // MOD
 +      }
 +
-+      // MOD: odds of each tier (yellow, purple, white, rainbow) in the extra missions
++      // MOD: odds of each tier (yellow, purple, white, rainbow, void, gold) in the extra missions
 +      public function extraTierWeights() : Array
 +      {
 +         if(currentEpisode == 13)
 +         {
-+            return [0.55,0.45,0,0];
++            return [0.55,0.45,0,0,0,0];
 +         }
 +         if(currentEpisode == 14)
 +         {
-+            return [0.15,0.6,0.25,0];
++            return [0.15,0.6,0.25,0,0,0];
 +         }
 +         if(currentEpisode == 15)
 +         {
-+            return [0,0.4,0.5,0.1];
++            return [0,0.4,0.5,0.1,0,0];
 +         }
-+         return [0,0.1,0.5,0.4];
++         return [0,0.1,0.42,0.35,0.12,0.01];
++      }
++
++      // MOD: debug menu: jump to the exit room, or to the nearest room not visited yet, entering through a
++      // doorway of that room (doors are the middle of each side)
++      public function debugWarp(param1:Boolean) : String
++      {
++         var gx:int = 0;
++         var gy:int = 0;
++         var best:Array = null;
++         var lg:LevelGrid = player.lg;
++         gy = 0;
++         while(gy < lg.grid.length)
++         {
++            gx = 0;
++            while(gx < lg.grid[gy].length)
++            {
++               if(lg.getCell(gx,gy) > 0 && !(gx == player.gridx && gy == player.gridy))
++               {
++                  if(param1)
++                  {
++                     if(lg.getCellData(gx,gy,"Finish") != null)
++                     {
++                        best = [gx,gy];
++                     }
++                  }
++                  else if(!lg.getCellData(gx,gy,"Data") && (best == null || Math.abs(gx - player.gridx) + Math.abs(gy - player.gridy) < Math.abs(best[0] - player.gridx) + Math.abs(best[1] - player.gridy)))
++                  {
++                     best = [gx,gy];
++                  }
++               }
++               gx++;
++            }
++            gy++;
++         }
++         if(!best)
++         {
++            return "NOWHERE TO GO";
++         }
++         oldGridX = player.gridx;
++         oldGridY = player.gridy;
++         player.gridx = best[0];
++         player.gridy = best[1];
++         player.destBaseX = 400;
++         player.destBaseY = 300;
++         if(lg.getCell(best[0] - 1,best[1]) > 0)
++         {
++            player.destBaseX = 40;
++         }
++         else if(lg.getCell(best[0] + 1,best[1]) > 0)
++         {
++            player.destBaseX = 760;
++         }
++         else if(lg.getCell(best[0],best[1] - 1) > 0)
++         {
++            player.destBaseY = 40;
++         }
++         else if(lg.getCell(best[0],best[1] + 1) > 0)
++         {
++            player.destBaseY = 560;
++         }
++         fading = 1;
++         return "OFF TO ROOM " + best[0] + "," + best[1];
++      }
++
++      // MOD: chance that an enemy becomes an elite, and that a variant's host enemy becomes that variant
++      public function eliteChance() : Number
++      {
++         return currentEpisode < 2 ? 0 : (currentEpisode < 5 ? 0.04 : (currentEpisode < 9 ? 0.07 : (currentEpisode < 13 ? 0.1 : 0.15)));
++      }
++
++      public function variantChance() : Number
++      {
++         return currentEpisode < 4 ? 0 : (currentEpisode < 8 ? 0.12 : (currentEpisode < 13 ? 0.2 : 0.3));
++      }
++
++      // MOD: after the tiers are set: some enemies become variants (wardens are only placed), then elites;
++      // wardens are always at least shielded
++      public function doEliteRolls() : void
++      {
++         var go:GameObject = null;
++         var e:EnemyBase = null;
++         var v:int = 0;
++         var tries:int = 0;
++         var pick:int = 0;
++         for each(go in objects)
++         {
++            e = go as EnemyBase;
++            if(!e || e.elite > 0 || e._killed)
++            {
++               continue;
++            }
++            if(e.variant == 0 && Math.random() < variantChance())
++            {
++               v = 1;
++               while(v < EnemyBase.VARIANT_COUNT)
++               {
++                  if(v != EnemyBase.V_WARDEN && e is EnemyBase.variantHost(v))
++                  {
++                     e.makeVariant(v);
++                     break;
++                  }
++                  v++;
++               }
++            }
++            if(e.variant == EnemyBase.V_WARDEN)
++            {
++               e.makeElite(EnemyBase.ELITE_SHIELDED);
++            }
++            else if(e.canBeElite() && Math.random() < eliteChance())
++            {
++               tries = 0;
++               while(tries < 10)
++               {
++                  pick = Random.randInt(1,EnemyBase.ELITE_COUNT - 1);
++                  if(e.canHaveElite(pick))
++                  {
++                     e.makeElite(pick);
++                     break;
++                  }
++                  tries++;
++               }
++            }
++         }
 +      }
 +
 +      public function doExtraEnemyDifficulty() : void
@@ -71,3 +195,43 @@
        }
        
        public function assignDifficultyToGroup(param1:Class, param2:int, param3:int = -1) : void
+@@ -875,7 +1056,9 @@
+          var go:GameObject = null;
+          var ogo:GameObject = null;
+          var levelArray:Array = param1;
+-         var objs:Array = levelArray[0].init(levelArray[1],this);
++         // MOD: the extra missions encode an enemy variant as object index + 1000 x variant
++         var variantCode:int = int(levelArray[1]) >= 1000 ? int(int(levelArray[1]) / 1000) : 0;
++         var objs:Array = levelArray[0].init(int(levelArray[1]) % 1000,this);
+          for each(go in objs)
+          {
+             go.basex += 52 * 15 * (levelArray[2] - 0.5);
+@@ -901,6 +1084,10 @@
+             }
+             if(go is EnemyBase)
+             {
++               if(variantCode > 0)
++               {
++                  EnemyBase(go).variant = variantCode;
++               }
+                EnemyBase(go).setupDifficulty(0);
+             }
+          }
+@@ -1794,6 +1981,17 @@
+                {
+                   HUDDisplay.open(this,PauseMenu);
+                }
++               // MOD: debug menu: F2 or the ` key, or DEBUG MENU in the pause menu
++               if(Boolean(Input.i.keyHit(113)) || Boolean(Input.i.keyHit(192)) || PauseMenu.openDebugNext && !HUDDisplay.any())
++               {
++                  PauseMenu.openDebugNext = false;
++                  PauseMenu.debugMode = true;
++                  HUDDisplay.open(this,PauseMenu);
++                  if(!HUDDisplay.any())
++                  {
++                     PauseMenu.debugMode = false;
++                  }
++               }
+             }
+          }
+          Input.i.keyHit(73);

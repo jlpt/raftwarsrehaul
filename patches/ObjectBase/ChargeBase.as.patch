@@ -1,0 +1,29 @@
+--- a/ObjectBase/ChargeBase.as
++++ b/ObjectBase/ChargeBase.as
+@@ -48,6 +48,15 @@
+             return;
+          }
+          super._update();
++         // MOD: kamikazes never take cover and rush the player
++         if(variant == V_KAMIKAZE)
++         {
++            inCover = 0;
++            nextInCover = 1000;
++            moveTowardsPlayer(3.2);
++            legs.animFreeze = false;
++            return;
++         }
+          if(inCover == 0)
+          {
+             moveTowardsPlayer(2);
+@@ -101,7 +110,9 @@
+       {
+          if(inCover != 0)
+          {
+-            if(blah[param1.id] != "asdf")
++            // MOD: damage without a bullet (explosions, burning, the Revenge item) is blocked by the cover
++            // instead of crashing on param1.id
++            if(param1 && blah[param1.id] != "asdf")
+             {
+                blah[param1.id] = "asdf";
+                pushBack(param1.baseRotation,3);

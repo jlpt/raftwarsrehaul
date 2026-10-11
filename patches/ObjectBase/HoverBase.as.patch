@@ -1,0 +1,20 @@
+--- a/ObjectBase/HoverBase.as
++++ b/ObjectBase/HoverBase.as
+@@ -54,7 +54,16 @@
+             {
+                moveRandomly(0.2,50);
+             }
+-            if(slowDown > 50 && slowDown < 150)
++            // MOD: bombers fire volleys of rockets instead
++            if(variant == V_BOMBER && slowDown > 50 && slowDown < 150)
++            {
++               if(slowDown % 30 == 0)
++               {
++                  shootMissile(-6,0);
++                  shootMissile(6,0);
++               }
++            }
++            else if(slowDown > 50 && slowDown < 150)
+             {
+                if(ticks % 10 == 0)
+                {

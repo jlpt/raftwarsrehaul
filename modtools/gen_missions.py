@@ -23,36 +23,55 @@ OBJ = dict(Hulk=0, Charge=1, Spawn=2, Grunt=4, TreasureChest=5, Cash=6, KeyPlace
            Spider=12, Swarm=13, Hover=14, SpiderGunner=15, GunFighter=25, BigTurret=26,
            ShootingGrunt=27, RespawnPoint=28, BigFlyBot=29, SpiderSpit=30, Walker=32,
            MineLayer=33, Sleeper=34, HoverSwarm=35, Inertia=36, HoverSpawn=37, Beserker=38,
-           ShopTile=39, Jumper=41, HoverSwarm2=42, HoverSwarmGun=43)
+           ShopTile=39, Jumper=41, HoverSwarm2=42, HoverSwarmGun=43, Boss=44)
 for name, idx in OBJ.items():
     assert BASE[idx][0].split(".")[-1] == name, (name, BASE[idx])
+
+# enemy variants (EnemyBase.V_*): host enemy and variant number; stored as host index + 1000 x variant,
+# which MainScene.initLevel decodes
+VARIANTS = dict(Sniper=("Turret", 1), Bomber=("Hover", 2), Bulwark=("Hulk", 3), Brood=("Spider", 4),
+                Kamikaze=("Charge", 5), Warden=("GunFighter", 6))
+
+
+def obj_code(obj):
+    if obj in VARIANTS:
+        host, v = VARIANTS[obj]
+        return OBJ[host] + 1000 * v
+    return OBJ[obj]
+
+
+def host_of(obj):
+    return VARIANTS[obj][0] if obj in VARIANTS else obj
 
 # threat cost of each enemy, and whether it needs a clear 3x3 footprint
 COST = dict(Charge=1.6, Swarm=0.5, Jumper=0.6, HoverSwarm2=0.7, HoverSwarm=0.8, Grunt=1, ShootingGrunt=1.4,
             Spider=1.4, Turret=1.5, SpiderGunner=1.8, Hover=1.8, MineLayer=2, Spawn=2.2,
             HoverSwarmGun=2, Sleeper=2.4, SpiderSpit=2.6, Hulk=3, BigTurret=3, BigFlyBot=3,
-            Inertia=3, GunFighter=4, HoverSpawn=4, Walker=4.5, Beserker=6)
-BIG = {"Hulk", "BigTurret", "BigFlyBot", "Inertia", "GunFighter", "HoverSpawn", "Walker", "Beserker"}
+            Inertia=3, GunFighter=4, HoverSpawn=4, Walker=4.5, Beserker=6,
+            Sniper=2, Bomber=2.2, Bulwark=3.5, Brood=2, Kamikaze=1.8, Warden=7)
+BIG = {"Hulk", "BigTurret", "BigFlyBot", "Inertia", "GunFighter", "HoverSpawn", "Walker", "Beserker",
+       "Bulwark", "Warden"}
+HUGE = {"Boss"}  # needs a clear 5x5 area
 
 MISSIONS = [
     # ep, rooms, main path length, locked chest rooms, room threat budget, enemy pool, finish guards
     dict(ep=13, seed=1401, rooms=30, main=13, chests=2, budget=(8, 12),
          pool=dict(Grunt=3, ShootingGrunt=3, Spider=2, SpiderGunner=2, Swarm=2, Spawn=2, Hulk=1.5,
                    Turret=1.5, Hover=1, MineLayer=1, Jumper=1, Charge=1),
-         guards=["Hulk", "Hulk", "BigTurret", "ShootingGrunt", "ShootingGrunt", "Spawn"]),
+         guards=["Warden", "Hulk", "BigTurret", "ShootingGrunt", "Sniper", "Spawn"]),
     dict(ep=14, seed=1502, rooms=34, main=14, chests=3, budget=(8, 12),
          pool=dict(Swarm=3, HoverSwarm=2, HoverSwarm2=2, Jumper=3, Spider=2, SpiderSpit=1.5, Spawn=2,
                    HoverSpawn=0.8, Sleeper=1.5, Hover=1.5, SpiderGunner=1.5, Inertia=1),
-         guards=["HoverSpawn", "SpiderSpit", "SpiderSpit", "Sleeper", "Jumper", "Jumper", "Jumper"]),
+         guards=["HoverSpawn", "Brood", "SpiderSpit", "Sleeper", "Kamikaze", "Kamikaze", "Jumper"]),
     dict(ep=15, seed=1603, rooms=36, main=15, chests=3, budget=(10, 14),
          pool=dict(Turret=2, BigTurret=1.5, GunFighter=1, MineLayer=2.5, Sleeper=2, ShootingGrunt=2.5,
                    Walker=0.7, BigFlyBot=1.2, Hulk=1.5, SpiderGunner=1.5, HoverSwarmGun=1.5, Inertia=1),
-         guards=["Walker", "GunFighter", "BigTurret", "MineLayer", "MineLayer", "HoverSwarmGun"]),
+         guards=["Warden", "Walker", "Bulwark", "MineLayer", "Sniper", "HoverSwarmGun"]),
     dict(ep=16, seed=1704, rooms=40, main=16, chests=4, budget=(11, 16),
          pool=dict(Beserker=0.4, GunFighter=1.2, Walker=0.6, Inertia=1.5, BigFlyBot=1.5, Sleeper=1.5,
                    MineLayer=1.5, HoverSpawn=0.7, SpiderSpit=1.2, ShootingGrunt=2, Jumper=2, Hulk=1.5,
                    HoverSwarmGun=1.5, BigTurret=1, Spawn=1.5),
-         guards=["Beserker", "GunFighter", "GunFighter", "Inertia", "BigFlyBot", "HoverSwarmGun"]),
+         guards=["Boss", "Warden", "Bulwark"]),
 ]
 
 
@@ -151,7 +170,7 @@ def sides_of(cells, c):
 
 def to_frac(obj, cx, cy):
     """Convert a floor cell to the level-editor fractional coords used by defaultSet."""
-    _, bx, by, _ = BASE[OBJ[obj]]
+    _, bx, by, _ = BASE[OBJ[host_of(obj)]]
     px, py = 36 + 52 * cx, 40 + 52 * cy
     return round((px - bx) / 780 + 0.5, 6), round((py - by) / 572 + 0.5, 6)
 
@@ -169,16 +188,17 @@ class Room:
         self.marks = []
 
     def take(self, obj, big=False, near=None, spacing=2):
+        r = 2 if obj in HUGE else (1 if big else 0)
         cands = [c for c in self.free
-                 if not big or all((c[0] + dx, c[1] + dy) in self.floor for dx in (-1, 0, 1) for dy in (-1, 0, 1))]
+                 if all((c[0] + dx, c[1] + dy) in self.floor for dx in range(-r, r + 1) for dy in range(-r, r + 1))]
         if near:
             cands.sort(key=lambda c: abs(c[0] - near[0]) + abs(c[1] - near[1]))
             cands = cands[:3]
         if not cands:
             return False
         c = self.rng.choice(cands)
-        self.objects.append((OBJ[obj], *to_frac(obj, *c)))
-        r = spacing - 1
+        self.objects.append((obj_code(obj), *to_frac(obj, *c)))
+        r = max(spacing - 1, 2 if obj in HUGE else 0)
         self.free -= {(c[0] + dx, c[1] + dy) for dx in range(-r, r + 1) for dy in range(-r, r + 1)}
         self.free.discard(c)
         return True
@@ -274,7 +294,7 @@ summary = []
 for m in MISSIONS:
     rooms, info = build(m)
     enemy_count = sum(1 for r in rooms.values() for o in r.objects
-                      if BASE[o[0]][0].split(".")[-1] in COST)
+                      if BASE[o[0] % 1000][0].split(".")[-1] in COST)
     summary.append(f"mission {m['ep'] + 1}: {len(rooms)} rooms, {enemy_count} enemies, "
                    f"{len(info['chests'])} locked chest rooms, keys {len(info['keys'])}")
     parts = []

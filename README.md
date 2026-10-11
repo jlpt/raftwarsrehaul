@@ -73,6 +73,24 @@ To move your progress from Linux to Windows, copy that file across.
   Their icons are the original weapon recoloured, with the type's code (TWIN, MINI, …) in the corner.
 - **Titan tier**: every weapon, old and new, now has a fourth level above Heavy (required level 42–53),
   so your favourite weapon type stays useful into missions 14–17. Titan icons show a T.
+- **Elite enemies**: from Mission 3 on, some enemies roll an elite type, shown by a coloured ring and a
+  name tag: **Shielded** (a regenerating shield), **Swift** (1.5× speed), **Splitter** (splits in two),
+  **Volatile** (explodes when killed), **Teleporter**, **Medic** (heals nearby enemies) and **Summoner**
+  (calls in bugs). Elites have 60% more health, give 2.5× XP and always drop a Rare-or-better weapon or cash.
+  Odds rise from 4% to 15% per enemy by Episode 5.
+- **Enemy variants**, labelled over their heads: **Sniper** turrets (laser sight, then one heavy shot),
+  **Bomber** hovers (rocket volleys), **Bulwark** hulks (a front shield that deflects bullets: flank them),
+  **Broodmother** spiders (burst into bugs), **Kamikaze** chargers (rush you and explode) and **Warden**
+  gunfighters (mini-bosses with bullet rings, always shielded). From Mission 5 some ordinary enemies
+  become variants; Episode 5's exit rooms have Wardens and others placed.
+- **The Overlord**: the Titan Prime boss returns at the end of Mission 17 in violet, with 70,000 health
+  and a new fight (bullet streams, bullet rings, missile volleys, flights across the room, and more
+  drones and speed each third of its health).
+- **Tiers 7 (void) and 8 (gold)** above rainbow (6× and 8× health, 110× and 150× XP), in Mission 17.
+- **Debug menu**: press **F2** or **`** in a mission, or DEBUG MENU in the pause menu: money, levels,
+  god mode, refill shield, any weapon (type, level, rarity, uniques) into the inventory or all four
+  slots, spawn elites/variants/the Overlord at any tier, kill enemies (bosses lose 20% per click), and
+  jump to the next room or the exit room.
 - **10 Legendary/Mythic uniques**, each with a fixed effect: Peacemaker, Leech and Hornet (blasters),
   Dragon Breath and Thunderclap (shotguns), Widowmaker (grenade), Sunlance (laser), Stormcaller (pulse
   gun), Bouncer (pulse shotgun) and Mincer (shredder).
@@ -87,9 +105,12 @@ This repository holds only the mod (as patches) and its tools, not the game. To 
 3. Run `./build.sh`. The first run downloads JPEXS into `tools/`, decompiles the game into `decompiled/`
    and creates `mod_src/` from `patches/`. Output: `robokill_mod.swf`.
 
-For `./play.sh` and the smoke test, copy your Linux Ruffle into `tools/ruffle/`. For the Windows exe, copy
-your `winbuild/ruffle` (patched Ruffle checkout) and `winbuild/toolchain` into `winbuild/`. Or drag
-`robokill_mod.swf` onto an existing `RobokillMod.exe` to play it without rebuilding the exe.
+For `./play.sh` and the smoke test, copy your Linux Ruffle into `tools/ruffle/`. For the Windows exe on
+Linux, run `winbuild/setup_toolchain.sh` once (fetches the pinned Ruffle source and applies
+`winbuild/robokill-ruffle.patch`, downloads llvm-mingw, adds the Rust Windows target; about 3 GB), then
+`winbuild/build_windows.sh` after every `./build.sh` (a first build takes about 10 minutes on 4 cores,
+later ones a few). Or drag `robokill_mod.swf` onto an existing `RobokillMod.exe` to play it without
+rebuilding the exe.
 
 ## Tweak and rebuild
     ./build.sh                  # regenerates missions + recompiles robokill_mod.swf
@@ -107,6 +128,10 @@ your `winbuild/ruffle` (patched Ruffle checkout) and `winbuild/toolchain` into `
 | Rarity odds, max rarity per mission, uniques | `mod_src/Weapons/WeaponGenerator.as` (`rarityWeights`, `maxRarity()`, `uniques`) |
 | Perk strength rolls | `mod_src/WeaponPlugin/WeaponPluginSplash.as` → `roll()` |
 | New weapon types: damage, fire rate, level, icon colour | `mod_src/Weapons/WeaponGenerator.as` → `variants` |
+| Elite/variant odds per mission | `mod_src/Scenes/MainScene.as` → `eliteChance()`, `variantChance()` |
+| Elite and variant health, names, colours | `mod_src/ObjectBase/EnemyBase.as` (`variantHealth`, `eliteNames`, `eliteColors`, `setupDifficulty`) |
+| Who guards Episode 5's exit rooms | `modtools/gen_missions.py` → `MISSIONS[...]["guards"]` (variant names like `"Warden"` work) |
+| The Overlord's health and attacks | `mod_src/ObjectBase/BossBase.as` (constructor, `updateOverlord`) |
 | Titan stats of the original weapons | `mod_src/Weapons/<Weapon>.as` (`levelDamage`, `levelRequired`, 4th entries) |
 
 The `mod_src/` classes are compiled into `original/robokill.swf` with JPEXS (`tools/ffdec-26.3.0`).
