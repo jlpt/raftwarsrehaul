@@ -127,6 +127,16 @@ Implement it where it fires: on hit in `hitEnemy()`, on kill in `WeaponBase.onKi
 Read its strength with `wep.perk(kind)`. Add a `trace("PERK …")` behind `WeaponGenerator.debugKeys` and a
 line in `modtools/perk_test.sh` so the test counts it.
 
+**Add a weapon type.** Append an entry to `WeaponGenerator.variants` (host weapon class, name, 4-letter icon
+code, one-line text, and per level light/medium/heavy/titan: required level `req`, damage `dmg`, ticks
+between shots `rof`; `hue` 0–1 recolours the host's icon). Add a constant for its index in `WeaponBase`,
+then its firing pattern as a `case` in `WeaponBase.shootVariant()`. `vbullet()` sets up a bullet (angle,
+speed, weapon, optional borrowed sprite such as `Embeds.spider_shot_png`); the bullet fields `life`,
+`drag`, `blast`/`blastRadius`, `homing`, `pierce` and `damageMult` cover most behaviours. Effects when a
+bullet hits or expires go in `WeaponBase.bulletImpact()` (keyed on `bullet.tag`), built-in perks in
+`setVariant()`. The generator, debug keys and `weapons_test.sh` (every type × every level must pass)
+pick it up automatically.
+
 **Add a unique (legendary/mythic) weapon.** Append an entry to `WeaponGenerator.uniques`: weapon class,
 name, one-line effect text, intrinsic perks as `[kind, amount, count]`, and optional `dmg`/`rof`
 multipliers or `pierce`. Never reorder or remove entries: saved weapons refer to them by index.

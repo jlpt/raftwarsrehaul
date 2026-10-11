@@ -18,20 +18,19 @@
     import Tools.Random;
     import WeaponPlugin.WeaponPluginBase;
     import WeaponPlugin.WeaponPluginFlyThrough;
-@@ -9,21 +19,58 @@
+@@ -9,159 +19,601 @@
     import WeaponPlugin.WeaponPluginKnockback;
     import WeaponPlugin.WeaponPluginRateOfFire;
     import WeaponPlugin.WeaponPluginSpeed;
 +   import WeaponPlugin.WeaponPluginSplash;
     import flash.utils.getDefinitionByName;
 -   
++   import flash.utils.getQualifiedClassName;
 +
     public class WeaponGenerator
     {
--      
 +
-       public static var weaponClasses:Array = [Laser,Blaster,Grenade,Shotgun,PulseGun,Knockback,LaserMinelayer];
--      
++      public static var weaponClasses:Array = [Laser,Blaster,Grenade,Shotgun,PulseGun,Knockback,LaserMinelayer];
 +
 +      // MOD: where a weapon comes from; decides its rarity odds
 +      public static const FROM_DROP:int = 0;
@@ -60,15 +59,40 @@
 +         {"cls":LaserMinelayer,"name":"MINCER","text":"TWIN SEEKING BLADES","perks":[[WeaponPluginSplash.MULTISHOT,1],[WeaponPluginSplash.HOMING,3]]}
 +      ];
 +
++      // MOD: the new weapon types (WeaponBase.TWIN ... SEEKER), indexed by WeaponBase.variant. Weapons store
++      // that index, so only ever append. req/dmg/rof are per level (light, medium, heavy, titan); rof is
++      // ticks between shots; hue recolours the weapon in its icon; code is printed on the icon.
++      public static var variants:Array = [null,
++         {"host":Blaster,"name":"TWIN BLASTER","code":"TWIN","text":"FIRES TWO PARALLEL BOLTS","req":[2,5,10,42],"dmg":[1,2,3,18],"rof":[24,20,20,12],"hue":0.33},
++         {"host":Blaster,"name":"MINIGUN","code":"MINI","text":"SPINS UP THE LONGER YOU FIRE","req":[7,13,19,45],"dmg":[1,2,3,13],"rof":[7,6,5,4],"hue":0},
++         {"host":Shotgun,"name":"SCATTERGUN","code":"SCAT","text":"8 PELLETS, SHORT RANGE","req":[4,9,14,43],"dmg":[1,2,3,24],"rof":[45,50,55,55],"hue":0.22},
++         {"host":Shotgun,"name":"FLAK CANNON","code":"FLAK","text":"SHELLS BURST INTO SHRAPNEL","req":[11,17,23,47],"dmg":[5,8,11,70],"rof":[70,70,70,65],"hue":0},
++         {"host":Laser,"name":"RAILGUN","code":"RAIL","text":"PIERCES EVERYTHING IN A LINE","req":[18,24,29,48],"dmg":[80,110,140,560],"rof":[150,150,150,140],"hue":0.47},
++         {"host":Laser,"name":"PRISM LASER","code":"PRSM","text":"SPLITS INTO THREE BEAMS","req":[21,27,33,50],"dmg":[30,40,50,220],"rof":[80,80,80,80],"hue":0.83},
++         {"host":Grenade,"name":"CLUSTER GUN","code":"CLST","text":"GRENADES BURST INTO BOMBLETS","req":[8,14,20,46],"dmg":[8,15,24,150],"rof":[70,75,80,75],"hue":0.33},
++         {"host":Grenade,"name":"MISSILE POD","code":"MSL","text":"TWIN HOMING MISSILES","req":[12,19,26,49],"dmg":[7,12,18,80],"rof":[60,60,60,55],"hue":0},
++         {"host":PulseGun,"name":"ACID SPRAYER","code":"ACID","text":"CORROSIVE SPRAY, SHORT RANGE","req":[15,22,28,47],"dmg":[2,4,6,22],"rof":[6,6,6,6],"hue":0.3},
++         {"host":PulseGun,"name":"TESLA GUN","code":"TSLA","text":"SEEKING BOLTS ARC TO 3 FOES","req":[24,30,36,51],"dmg":[20,30,42,110],"rof":[30,30,30,30],"hue":0.5},
++         {"host":Knockback,"name":"SHOCKWAVE","code":"WAVE","text":"RING OF FORCE, KNOCKS BACK","req":[29,34,39,52],"dmg":[20,27,35,130],"rof":[60,60,60,60],"hue":0.83},
++         {"host":LaserMinelayer,"name":"SEEKER MINES","code":"SEEK","text":"SLOW ORBS HUNT DOWN FOES","req":[33,38,44,53],"dmg":[60,80,105,170],"rof":[45,45,45,45],"hue":0.3}
++      ];
++
 +      // MOD: debug build only (modtools/build_debug.sh): G drops a weapon of the next rarity, H the next
 +      // unique, J equips the next four uniques, K spawns three grunts and a hulk to the right, L checks the
-+      // equipped weapons survive the save format, O opens the shop. Every weapon made and every perk that
-+      // triggers is traced to the log.
++      // equipped weapons survive the save format, O opens the shop, N equips the next four weapon types
++      // (all types at light, then all at medium, ...), V builds, draws and fires every type at every level
++      // and traces the result, I toggles god mode, U fills the inventory with every type, P adds 10 player
++      // levels. Every weapon made and every perk that triggers is traced to the log.
 +      public static var debugKeys:Boolean = false;
 +
 +      public static var debugRarity:int = 0;
 +
 +      public static var debugUnique:int = 0;
+       
+-      public static var weaponClasses:Array = [Laser,Blaster,Grenade,Shotgun,PulseGun,Knockback,LaserMinelayer];
++      public static var debugType:int = 0;
+       
++      public static var debugGod:Boolean = false;
 +
        public function WeaponGenerator()
        {
@@ -79,13 +103,25 @@
        public static function generateWeapon(param1:int, param2:int, param3:Boolean = false, param4:Boolean = false) : WeaponBase
        {
 -         var newLevel:*;
-          var possibilities:Array;
-          var variance:*;
-          var c:int = 0;
-@@ -36,16 +83,6 @@
+-         var possibilities:Array;
+-         var variance:*;
+-         var c:int = 0;
++         var t:Array = null;
++         var lv:int = 0;
++         var req:int = 0;
++         var w:Number = NaN;
++         var total:Number = 0;
++         var pick:Number = NaN;
++         var c:Array = null;
+          var wb:WeaponBase = null;
+-         var minLevel:int = 0;
+-         var maxLevel:* = undefined;
+-         var b:Blaster = null;
+-         var level:int = param1;
+          var playerLevel:int = param2;
           var forceRare:Boolean = param3;
           var forShop:Boolean = param4;
-          var ms:MainScene = MainScene(GameScene.current());
+-         var ms:MainScene = MainScene(GameScene.current());
 -         level = 10 + 7 * ms.currentEpisode;
 -         if(level < 0)
 -         {
@@ -96,93 +132,87 @@
 -            level = 65;
 -         }
 -         newLevel = dodgyPoisson(level);
-          possibilities = new Array();
-          variance = 0;
-          while(variance < 10)
-@@ -74,13 +111,8 @@
-                      }
-                   }
-                   wb = new weaponClasses[c]();
--                  addPlugins(wb);
+-         possibilities = new Array();
+-         variance = 0;
+-         while(variance < 10)
+-         {
+-            c = 0;
+-            while(c < weaponClasses.length)
+-            {
+-               level = 0;
+-               for(; level < 3; level++)
+-               {
++         // MOD: candidates are every weapon type (the seven originals plus the new variants) at every level
++         // including Titan, filtered by the player's level like the original's weapons were. Perks are no
++         // longer part of the base weapon: the rarity (and its perks) is rolled afterwards.
++         var minLevel:int = playerLevel + 1 + (playerLevel > 8 ? 3 : (playerLevel > 5 ? 2 : (playerLevel > 3 ? 1 : 0)));
++         var maxLevel:int = playerLevel > 3 ? playerLevel - 1 : playerLevel;
++         var cands:Array = new Array();
++         var relaxed:Boolean = false;
++         while(cands.length == 0 && !(relaxed && forShop))
++         {
++            for each(t in allTypes())
++            {
++               lv = 0;
++               while(lv < 4)
++               {
++                  req = requiredLevel(t[0],t[1],lv);
++                  // the original made pulse guns 5x rarer as drops
++                  w = t[0] == PulseGun && t[1] == 0 && !forShop ? 0.2 : 1;
                    if(forceRare)
                    {
--                     while(wb.properPluginCount() < 2)
--                     {
--                        addPlugins(wb);
--                     }
-                      wb.level = 2;
+-                     if(weaponClasses[c] == Blaster || weaponClasses[c] == Shotgun || weaponClasses[c] == LaserMinelayer || weaponClasses[c] == Knockback)
++                     // chests: heavy (or Titan once the player is close to it), never the weakest types
++                     if(lv < 2 || chestExcluded(t) || lv == 3 && playerLevel < req - 4)
+                      {
+-                        continue;
++                        w = 0;
+                      }
                    }
-                   possibilities.push(wb);
-@@ -89,11 +121,12 @@
-             }
-             variance++;
-          }
-+         // MOD: perks no longer come with the base weapon, so the level filters use the base requirement;
-+         // rarity (and its perks) is rolled afterwards
-          if(!forceRare)
-          {
-             if(forShop)
-             {
--               minLevel = playerLevel + 1 + 3;
-                if(playerLevel > 8)
-                {
-                   minLevel = playerLevel + 1 + 3;
-@@ -112,11 +145,11 @@
-                }
-                possibilities = possibilities.filter(function(param1:Object, param2:int, param3:Array):Boolean
-                {
--                  return WeaponBase(param1).playerMinLevelForShop() <= minLevel;
-+                  return WeaponBase(param1).playerMinLevel() <= minLevel;
-                });
-                possibilities = possibilities.filter(function(param1:Object, param2:int, param3:Array):Boolean
-                {
--                  return WeaponBase(param1).playerMinLevelForShop() >= playerLevel - 5 || param1 is PulseGun;
-+                  return WeaponBase(param1).playerMinLevel() >= playerLevel - 5 || param1 is PulseGun;
-                });
-             }
-             else
-@@ -126,42 +159,324 @@
-                {
-                   maxLevel--;
-                }
--               else if(maxLevel > 6)
--               {
--                  maxLevel -= 2;
--               }
--               else if(maxLevel > 12)
--               {
--                  maxLevel -= 3;
--               }
-                possibilities = possibilities.filter(function(param1:Object, param2:int, param3:Array):Boolean
-                {
--                  return WeaponBase(param1).playerMinLevelForShop() <= maxLevel;
-+                  return WeaponBase(param1).playerMinLevel() <= maxLevel;
-                });
-             }
--            if(ms.currentEpisode == 0)
--            {
--               possibilities = possibilities.filter(function(param1:Object, param2:int, param3:Array):Boolean
--               {
--                  return WeaponBase(param1).properPluginCount() == 0;
--               });
--            }
--            if(ms.currentEpisode == 1)
--            {
--               possibilities = possibilities.filter(function(param1:Object, param2:int, param3:Array):Boolean
--               {
--                  return WeaponBase(param1).properPluginCount() <= 1;
--               });
--            }
-          }
-          if(possibilities.length >= 1)
-          {
--            return possibilities[Random.randInt(0,possibilities.length - 1)];
--         }
--         trace(" NO POSSIBILITY");
--         b = new Blaster();
--         b.level = 0;
--         return b;
-+            wb = possibilities[Random.randInt(0,possibilities.length - 1)];
+-                  if(!forShop)
+-                  {
+-                     if(weaponClasses[c] == PulseGun)
++                  else if(forShop)
++                  {
++                     if(req > minLevel || req < playerLevel - 5 && !(t[0] == PulseGun && t[1] == 0))
+                      {
+-                        if(variance % 5 != 0)
++                        w = 0;
++                     }
++                  }
++                  else if(req > maxLevel || !relaxed && req < playerLevel - 18)
++                  {
++                     // drops: anything usable, but late in the game not the very weakest
++                     w = 0;
++                  }
++                  if(w > 0)
++                  {
++                     cands.push([t[0],t[1],lv,w]);
++                     total += w;
++                  }
++                  lv++;
++               }
++            }
++            if(relaxed)
++            {
++               break;
++            }
++            relaxed = true;
++         }
++         if(cands.length > 0)
++         {
++            pick = Math.random() * total;
++            for each(c in cands)
++            {
++               pick -= c[3];
++               if(pick < 0)
++               {
++                  break;
++               }
++            }
++            wb = new c[0]();
++            wb.level = c[2];
++            wb.setVariant(c[1]);
 +         }
 +         else
 +         {
@@ -198,6 +228,39 @@
 +         return wb;
 +      }
 +
++      // MOD: [weapon class, variant] for every weapon type
++      public static function allTypes() : Array
++      {
++         var _loc2_:int = 0;
++         var _loc3_:Class = null;
++         var _loc1_:Array = new Array();
++         for each(_loc3_ in weaponClasses)
++         {
++            _loc1_.push([_loc3_,0]);
++            _loc2_ = 1;
++            while(_loc2_ < variants.length)
++            {
++               if(variants[_loc2_].host == _loc3_)
++               {
++                  _loc1_.push([_loc3_,_loc2_]);
++               }
++               _loc2_++;
++            }
++         }
++         return _loc1_;
++      }
++      
++      // the same number playerMinLevel() gives (one below the level shown as REQUIRED LEVEL)
++      public static function requiredLevel(param1:Class, param2:int, param3:int) : int
++      {
++         return (param2 > 0 ? int(variants[param2].req[param3]) : int(Object(param1).levelRequired[param3])) - 1;
++      }
++      
++      public static function chestExcluded(param1:Array) : Boolean
++      {
++         return (param1[0] == Blaster || param1[0] == Shotgun) && param1[1] == 0 || param1[0] == LaserMinelayer || param1[0] == Knockback;
++      }
++      
 +      // MOD: the best rarity that can appear in the current mission (the original game allowed no perks
 +      // in mission 1 and at most one in mission 2)
 +      public static function maxRarity(param1:int) : int
@@ -308,7 +371,7 @@
 +               _loc7_ = 0;
 +               while(_loc7_ < uniques.length)
 +               {
-+                  if(param1 is uniques[_loc7_].cls)
++                  if(param1 is uniques[_loc7_].cls && param1.variant == 0)
 +                  {
 +                     _loc4_.push(_loc7_);
 +                  }
@@ -347,7 +410,9 @@
 +         }
 +         _loc9_ = 0;
 +         _loc7_ = 0;
-+         while(_loc9_ < WeaponBase.rarityPerks[param2] && _loc7_ < 100)
++         // a legendary or mythic without a unique effect (the new weapon types have none) gets one more perk
++         var _loc13_:int = WeaponBase.rarityPerks[param2] + (param2 >= WeaponBase.LEGENDARY && param1.unique < 0 ? 1 : 0);
++         while(_loc9_ < _loc13_ && _loc7_ < 100)
 +         {
 +            _loc7_++;
 +            _loc10_ = _loc12_[Random.randInt(0,_loc12_.length - 1)];
@@ -415,6 +480,60 @@
 +            traceWeapon("debug unique",_loc3_);
 +            debugUnique = (debugUnique + 1) % uniques.length;
 +         }
++         if(Input.i.keyHit(78))
++         {
++            _loc5_ = 0;
++            while(_loc5_ < 4)
++            {
++               _loc4_ = allTypes()[debugType % allTypes().length];
++               _loc3_ = new _loc4_[0]();
++               _loc3_.level = int(debugType / allTypes().length) % 4;
++               _loc3_.setVariant(_loc4_[1]);
++               applyRarity(_loc3_,WeaponBase.COMMON);
++               param1.weapons[_loc5_] = _loc3_;
++               traceWeapon("debug type " + _loc5_,_loc3_);
++               debugType++;
++               _loc5_++;
++            }
++         }
++         if(Input.i.keyHit(85))
++         {
++            // the inventory: every type at Titan level, then the originals at light/medium/heavy
++            _loc5_ = 0;
++            for each(_loc4_ in allTypes())
++            {
++               _loc3_ = new _loc4_[0]();
++               _loc3_.level = 3;
++               _loc3_.setVariant(_loc4_[1]);
++               applyRarity(_loc3_,_loc5_ % 6);
++               param1.inventory[_loc5_++] = _loc3_;
++            }
++            for each(_loc4_ in allTypes())
++            {
++               if(_loc5_ < param1.inventory.length && _loc4_[1] > 0)
++               {
++                  _loc3_ = new _loc4_[0]();
++                  _loc3_.level = _loc5_ % 3;
++                  _loc3_.setVariant(_loc4_[1]);
++                  param1.inventory[_loc5_++] = _loc3_;
++               }
++            }
++         }
++         if(Input.i.keyHit(80))
++         {
++            param1.level += 10;
++            Shop.lastObjects = null; // restock the shop for the new level
++            trace("DEBUG player level " + param1.level);
++         }
++         if(Input.i.keyHit(73))
++         {
++            debugGod = !debugGod;
++            trace("DEBUG god mode " + debugGod);
++         }
++         if(Input.i.keyHit(86))
++         {
++            debugCheckAll(param1);
++         }
 +         if(Input.i.keyHit(79))
 +         {
 +            HUDDisplay.open(param1.gs,Shop);
@@ -451,6 +570,50 @@
 +         }
 +      }
 +
++      // MOD: debug: every weapon type at every level must build, describe, draw and fire without errors
++      public static function debugCheckAll(param1:PlayerBase) : void
++      {
++         var _loc2_:Array = null;
++         var _loc3_:int = 0;
++         var _loc4_:WeaponBase = null;
++         var _loc5_:Object = null;
++         var _loc6_:int = 0;
++         var _loc7_:int = 0;
++         for each(_loc2_ in allTypes())
++         {
++            _loc3_ = 0;
++            while(_loc3_ < 4)
++            {
++               try
++               {
++                  _loc4_ = new _loc2_[0]();
++                  _loc4_.level = _loc3_;
++                  _loc4_.setVariant(_loc2_[1]);
++                  applyRarity(_loc4_,(_loc3_ + _loc2_[1]) % 6);
++                  _loc4_.getText();
++                  _loc5_ = _loc4_.getGameObject(param1.gs);
++                  _loc5_.remove();
++                  _loc5_ = _loc4_.getWeaponObject(param1.gs);
++                  if(_loc5_)
++                  {
++                     _loc5_.remove();
++                  }
++                  new PickupWeapon(param1.gs,-200,-200).wep = _loc4_;
++                  _loc4_.fire(param1.gs,param1.basex,param1.basey,param1.basex + 160,param1.basey + 10);
++                  trace("TYPECHECK ok " + _loc4_.displayName() + " (" + WeaponBase.rarityNames[_loc4_.effectiveRarity()] + ") req " + (_loc4_.playerMinLevel() + 1) + " dmg " + _loc4_.damage() + " rof " + _loc4_.rateOfFire() + " [" + _loc4_.rofString() + "] value " + _loc4_.value() + " perks [" + _loc4_.properties() + "]");
++                  _loc6_++;
++               }
++               catch(e:Error)
++               {
++                  trace("TYPECHECK FAIL " + getQualifiedClassName(_loc2_[0]) + " variant " + _loc2_[1] + " level " + _loc3_ + ": " + e.message);
++                  _loc7_++;
++               }
++               _loc3_++;
++            }
++         }
++         trace("TYPECHECK done: " + _loc6_ + " ok, " + _loc7_ + " failed");
++      }
++      
 +      // MOD: debug: put the equipped weapons through the save format (and an old-save version of it,
 +      // without the mod's fields) and check what comes back
 +      public static function debugSaveCheck(param1:PlayerBase) : void
@@ -477,10 +640,102 @@
 +                     for each(var _loc8_:Array in _loc6_[1])
 +                     {
 +                        _loc7_.push([_loc8_[0],_loc8_[1].filter(function(param1:Object, param2:int, param3:Array):Boolean
-+                        {
+                         {
+-                           continue;
+-                        }
 +                           return param1[0] == "isIntrinsic" || param1[0] == "percent";
 +                        })]);
-+                     }
+                      }
+-                  }
+-                  wb = new weaponClasses[c]();
+-                  addPlugins(wb);
+-                  if(forceRare)
+-                  {
+-                     while(wb.properPluginCount() < 2)
+-                     {
+-                        addPlugins(wb);
+-                     }
+-                     wb.level = 2;
+-                  }
+-                  possibilities.push(wb);
+-               }
+-               c++;
+-            }
+-            variance++;
+-         }
+-         if(!forceRare)
+-         {
+-            if(forShop)
+-            {
+-               minLevel = playerLevel + 1 + 3;
+-               if(playerLevel > 8)
+-               {
+-                  minLevel = playerLevel + 1 + 3;
+-               }
+-               else if(playerLevel > 5)
+-               {
+-                  minLevel = playerLevel + 1 + 2;
+-               }
+-               else if(playerLevel > 3)
+-               {
+-                  minLevel = playerLevel + 1 + 1;
+-               }
+-               else
+-               {
+-                  minLevel = playerLevel + 1;
+-               }
+-               possibilities = possibilities.filter(function(param1:Object, param2:int, param3:Array):Boolean
+-               {
+-                  return WeaponBase(param1).playerMinLevelForShop() <= minLevel;
+-               });
+-               possibilities = possibilities.filter(function(param1:Object, param2:int, param3:Array):Boolean
+-               {
+-                  return WeaponBase(param1).playerMinLevelForShop() >= playerLevel - 5 || param1 is PulseGun;
+-               });
+-            }
+-            else
+-            {
+-               maxLevel = playerLevel;
+-               if(maxLevel > 3)
+-               {
+-                  maxLevel--;
+-               }
+-               else if(maxLevel > 6)
+-               {
+-                  maxLevel -= 2;
+-               }
+-               else if(maxLevel > 12)
+-               {
+-                  maxLevel -= 3;
+-               }
+-               possibilities = possibilities.filter(function(param1:Object, param2:int, param3:Array):Boolean
+-               {
+-                  return WeaponBase(param1).playerMinLevelForShop() <= maxLevel;
+-               });
+-            }
+-            if(ms.currentEpisode == 0)
+-            {
+-               possibilities = possibilities.filter(function(param1:Object, param2:int, param3:Array):Boolean
+-               {
+-                  return WeaponBase(param1).properPluginCount() == 0;
+-               });
+-            }
+-            if(ms.currentEpisode == 1)
+-            {
+-               possibilities = possibilities.filter(function(param1:Object, param2:int, param3:Array):Boolean
+-               {
+-                  return WeaponBase(param1).properPluginCount() <= 1;
+-               });
+-            }
+-         }
+-         if(possibilities.length >= 1)
+-         {
+-            return possibilities[Random.randInt(0,possibilities.length - 1)];
+-         }
+-         trace(" NO POSSIBILITY");
+-         b = new Blaster();
+-         b.level = 0;
+-         return b;
 +                     _loc5_.push(["plugins",_loc7_,"Array"]);
 +                  }
 +                  else if(_loc6_[0] != "rarity" && _loc6_[0] != "unique")
@@ -495,7 +750,7 @@
        }
        
        public static function generateItem(param1:int = 40, param2:Boolean = false) : ItemBase
-@@ -193,7 +508,7 @@
+@@ -193,7 +645,7 @@
           }
           return null;
        }
@@ -504,7 +759,7 @@
        public static function dodgyPoisson(param1:int) : int
        {
           var _loc2_:int = 0;
-@@ -208,7 +523,8 @@
+@@ -208,7 +660,8 @@
           }
           return _loc2_;
        }
@@ -514,7 +769,7 @@
        public static function addPlugins(param1:WeaponBase) : void
        {
           var wb:WeaponBase = param1;
-@@ -239,4 +555,3 @@
+@@ -239,4 +692,3 @@
        }
     }
  }

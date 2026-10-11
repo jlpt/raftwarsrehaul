@@ -1,0 +1,96 @@
+--- a/Weapons/PulseGun.as
++++ b/Weapons/PulseGun.as
+@@ -4,12 +4,13 @@
+    import GlobalSetup.Embeds;
+    import Objects.PulseBullet;
+    
++   // MOD: level 3 is the new Titan tier; variant > 0 makes this one of the new weapon types (WeaponBase.variants)
+    public class PulseGun extends WeaponBase
+    {
+       
+-      public static var levelDamage:Array = [10,15,20];
++      public static var levelDamage:Array = [10,15,20,64];
+       
+-      public static var levelRequired:Array = [20,25,30];
++      public static var levelRequired:Array = [20,25,30,47];
+       
+       public function PulseGun()
+       {
+@@ -23,7 +24,7 @@
+       
+       override public function _inGameImage() : Class
+       {
+-         return [Embeds.pulsegun_s_png,Embeds.pulsegun_m_png,Embeds.pulsegun_h_png][level];
++         return [Embeds.pulsegun_s_png,Embeds.pulsegun_m_png,Embeds.pulsegun_h_png,Embeds.pulsegun_h_png][level];
+       }
+       
+       override public function recoilAmount() : Number
+@@ -33,26 +34,42 @@
+       
+       override public function name() : String
+       {
+-         return ["LIGHT PULSE GUN","MEDIUM PULSE GUN","HEAVY PULSE GUN"][level];
++         if(variant)
++         {
++            return variantName(); // MOD: new weapon types
++         }
++         return ["LIGHT PULSE GUN","MEDIUM PULSE GUN","HEAVY PULSE GUN","TITAN PULSE GUN"][level];
+       }
+       
+       override public function _rateOfFire() : int
+       {
++         if(variant)
++         {
++            return variantRof();
++         }
+          return 20;
+       }
+       
+       override public function _damage() : Number
+       {
++         if(variant)
++         {
++            return variantDamage();
++         }
+          return levelDamage[level];
+       }
+       
+       override public function value() : int
+       {
+-         return [1.25,1.4,1.6][level] * super.value();
++         return [1.25,1.4,1.6,1.8][level] * super.value();
+       }
+       
+       override public function playerMinLevel() : int
+       {
++         if(variant)
++         {
++            return variantReq();
++         }
+          return levelRequired[level] - 1;
+       }
+       
+@@ -63,16 +80,21 @@
+       
+       override public function icon() : Class
+       {
+-         return [Embeds.pulsegun_png,Embeds.pulsegun_2_png,Embeds.pulsegun_3_png][level];
++         return [Embeds.pulsegun_png,Embeds.pulsegun_2_png,Embeds.pulsegun_3_png,Embeds.pulsegun_3_png][level];
+       }
+       
+       override public function _pointWorth() : int
+       {
+-         return [10,20,40][level];
++         return [10,20,40,60][level];
+       }
+       
+       override public function shoot(param1:GameScene, param2:Number, param3:Number, param4:Number, param5:Number) : void
+       {
++         if(variant)
++         {
++            shootVariant(param1,param2,param3,param4,param5);
++            return;
++         }
+          var _loc6_:PulseBullet = null;
+          _loc6_ = new PulseBullet(param1,param2,param3);
+          _loc6_.setAngle(Math.atan2(param5 - param3,param4 - param2) * 180 / Math.PI + shotRotation());

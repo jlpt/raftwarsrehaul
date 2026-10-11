@@ -1,0 +1,99 @@
+--- a/Weapons/Laser.as
++++ b/Weapons/Laser.as
+@@ -7,12 +7,13 @@
+    import Tools.Interpolation;
+    import WeaponPlugin.WeaponPluginFlyThrough;
+    
++   // MOD: level 3 is the new Titan tier; variant > 0 makes this one of the new weapon types (WeaponBase.variants)
+    public class Laser extends WeaponBase
+    {
+       
+-      public static var levelDamage:Array = [35,45,55];
++      public static var levelDamage:Array = [35,45,55,240];
+       
+-      public static var levelRequired:Array = [16,21,26];
++      public static var levelRequired:Array = [16,21,26,46];
+       
+       public function Laser()
+       {
+@@ -24,17 +25,21 @@
+       
+       override public function playerMinLevel() : int
+       {
++         if(variant)
++         {
++            return variantReq();
++         }
+          return levelRequired[level] - 1;
+       }
+       
+       override public function _inGameImage() : Class
+       {
+-         return [Embeds.lazer_s_png,Embeds.lazer_m_png,Embeds.lazer_h_png][level];
++         return [Embeds.lazer_s_png,Embeds.lazer_m_png,Embeds.lazer_h_png,Embeds.lazer_h_png][level];
+       }
+       
+       override public function icon() : Class
+       {
+-         return [Embeds.lazer_png,Embeds.lazer_2_png,Embeds.lazer_3_png][level];
++         return [Embeds.lazer_png,Embeds.lazer_2_png,Embeds.lazer_3_png,Embeds.lazer_3_png][level];
+       }
+       
+       override public function boxDamage() : int
+@@ -44,11 +49,19 @@
+       
+       override public function name() : String
+       {
+-         return ["LIGHT LASER","MEDIUM LASER","HEAVY LASER"][level];
++         if(variant)
++         {
++            return variantName(); // MOD: new weapon types
++         }
++         return ["LIGHT LASER","MEDIUM LASER","HEAVY LASER","TITAN LASER"][level];
+       }
+       
+       override public function _rateOfFire() : int
+       {
++         if(variant)
++         {
++            return variantRof();
++         }
+          switch(level)
+          {
+             case 0:
+@@ -57,6 +70,8 @@
+                return 80;
+             case 2:
+                return 80;
++            case 3:
++               return 80;
+             default:
+                return 100;
+          }
+@@ -64,16 +79,25 @@
+       
+       override public function _pointWorth() : int
+       {
+-         return [20,40,60][level];
++         return [20,40,60,80][level];
+       }
+       
+       override public function _damage() : Number
+       {
++         if(variant)
++         {
++            return variantDamage();
++         }
+          return levelDamage[level];
+       }
+       
+       override public function shoot(param1:GameScene, param2:Number, param3:Number, param4:Number, param5:Number) : void
+       {
++         if(variant)
++         {
++            shootVariant(param1,param2,param3,param4,param5);
++            return;
++         }
+          var _loc7_:LaserBullet = null;
+          var _loc6_:MainScene = MainScene(param1);
+          param2 = Interpolation.lockValue(param2,_loc6_.startx,_loc6_.endx);

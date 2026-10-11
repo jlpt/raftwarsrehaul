@@ -1,6 +1,14 @@
 --- a/ObjectBase/BulletBase.as
 +++ b/ObjectBase/BulletBase.as
-@@ -24,6 +24,11 @@
+@@ -4,6 +4,7 @@
+    import GameScene.GameScene;
+    import Scenes.MainMenu;
+    import Scenes.MainScene;
++   import WeaponPlugin.WeaponPluginSplash;
+    import Weapons.WeaponBase;
+    import flash.display.Bitmap;
+    import flash.display.BitmapData;
+@@ -24,6 +25,34 @@
        public var angle:Number = 0;
        
        public var mediumSprite:BitmapData;
@@ -9,21 +17,55 @@
 +      public var homingTarget:EnemyBase;
 +
 +      public var homingTicks:int = 0;
++
++      // MOD: behaviour for the new weapon types (set by WeaponBase.shootVariant)
++      // life: ticks until the bullet expires (and impacts); drag: speed multiplier per tick;
++      // damageMult: scales damage(); blast: on impact, enemies within blastRadius take blast x damage;
++      // tag: which variant made it (WeaponBase.bulletImpact bursts flak/cluster shells); homing: extra
++      // turn rate on top of the homing perk; pierce: goes through enemies
++      public var life:int = 0;
++
++      public var drag:Number = 1;
++
++      public var damageMult:Number = 1;
++
++      public var blast:Number = 0;
++
++      public var blastRadius:Number = 70;
++
++      public var tag:int = 0;
++
++      public var homing:Number = 0;
++
++      public var pierce:Boolean = false;
++
++      public var impacted:Boolean = false;
        
        public function BulletBase(param1:GameScene, param2:Class, param3:String, param4:int, param5:int)
        {
-@@ -46,6 +51,10 @@
+@@ -46,6 +75,21 @@
        override public function _update() : void
        {
           var _loc2_:GameObject = null;
-+         if(wep && wep.homingTurn() > 0)
++         var _loc3_:Number = homing + (wep ? wep.homingTurn() : 0);
++         if(_loc3_ > 0)
 +         {
-+            steer(wep.homingTurn()); // MOD
++            steer(_loc3_); // MOD
++         }
++         if(drag != 1)
++         {
++            speed *= drag;
++         }
++         if(life > 0 && ticks >= life)
++         {
++            impact(null);
++            remove();
++            return;
 +         }
           basex += cosd(angle) * speed;
           basey += sind(angle) * speed;
           baseRotation = angle - 90;
-@@ -86,6 +95,57 @@
+@@ -86,6 +130,57 @@
           }
        }
        
@@ -81,3 +123,68 @@
        public function hits(param1:EnemyBase) : Boolean
        {
           return Math.abs(basex - param1.basex) < 30 && Math.abs(basey - param1.basey) < 30;
+@@ -106,15 +201,55 @@
+          {
+             _loc1_ = 1.01;
+          }
+-         return wep.damage() * _loc1_;
++         return wep.damage() * _loc1_ * damageMult;
++      }
++
++      // MOD: the bullet hit something or expired: blast damage, then the weapon's own effect (bursts)
++      public function impact(param1:EnemyBase) : void
++      {
++         var _loc2_:Object = null;
++         var _loc3_:EnemyBase = null;
++         var _loc4_:Array = null;
++         if(impacted || _removed)
++         {
++            return;
++         }
++         impacted = true;
++         if(blast > 0)
++         {
++            Sounds.rocketHit.play();
++            emitConditionalParticles("RocketExplosion",basex,basey,true);
++            _loc4_ = new Array();
++            for each(_loc2_ in gs.objects)
++            {
++               _loc3_ = _loc2_ as EnemyBase;
++               if(_loc3_ && _loc3_ != param1 && WeaponPluginSplash.canBeZapped(_loc3_) && _loc3_.distanceToPoint(basex,basey) < blastRadius)
++               {
++                  _loc4_.push(_loc3_);
++               }
++            }
++            for each(_loc3_ in _loc4_)
++            {
++               _loc3_.hitBy(null,Math.max(1,int(damage() * blast)));
++            }
++         }
++         if(wep)
++         {
++            wep.bulletImpact(this,param1);
++         }
+       }
+       
+       public function hasHit(param1:EnemyBase) : void
+       {
+          keep = false;
+          wep.handleHit(this,param1);
++         if(pierce)
++         {
++            keep = true; // MOD
++         }
+          if(!keep)
+          {
++            impact(param1); // MOD
+             Sounds.objectHit.play();
+             remove();
+          }
+@@ -122,6 +257,7 @@
+       
+       public function removeWithEffects() : void
+       {
++         impact(null); // MOD
+          Sounds.wallHit.play();
+          if(MainMenu.levelOfDetail)
+          {

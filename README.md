@@ -53,6 +53,26 @@ To move your progress from Linux to Windows, copy that file across.
   **Chain** (lightning jumps to nearby enemies), **Crit** (chance of double damage), **+1 Shot**,
   **Homing**, **Kill +% Shield** (kills recharge your shield) and **Volatile** (kills explode, hurting
   enemies nearby).
+- **12 new weapon types**, each in Light, Medium, Heavy and Titan:
+
+  | Weapon | Built on | What it does | Required level (L/M/H/T) |
+  |---|---|---|---|
+  | Twin Blaster | Blaster | two parallel bolts | 2 / 5 / 10 / 42 |
+  | Minigun | Blaster | spins up from 1/3 speed the longer you fire | 7 / 13 / 19 / 45 |
+  | Scattergun | Shotgun | 8 pellets, short range | 4 / 9 / 14 / 43 |
+  | Flak Cannon | Shotgun | shells burst into shrapnel | 11 / 17 / 23 / 47 |
+  | Railgun | Laser | pierces everything in a line, slow | 18 / 24 / 29 / 48 |
+  | Prism Laser | Laser | three beams | 21 / 27 / 33 / 50 |
+  | Cluster Gun | Grenade | grenades burst into bomblets | 8 / 14 / 20 / 46 |
+  | Missile Pod | Grenade | two homing missiles that explode | 12 / 19 / 26 / 49 |
+  | Acid Sprayer | Pulse gun | short-range corrosive spray (damage over time) | 15 / 22 / 28 / 47 |
+  | Tesla Gun | Pulse gun | seeking bolts that arc to 3 more enemies | 24 / 30 / 36 / 51 |
+  | Shockwave | Pulse shotgun | ring of 16 shots around you, knockback | 29 / 34 / 39 / 52 |
+  | Seeker Mines | Shredder | slow orbs that hunt enemies and explode | 33 / 38 / 44 / 53 |
+
+  Their icons are the original weapon recoloured, with the type's code (TWIN, MINI, …) in the corner.
+- **Titan tier**: every weapon, old and new, now has a fourth level above Heavy (required level 42–53),
+  so your favourite weapon type stays useful into missions 14–17. Titan icons show a T.
 - **10 Legendary/Mythic uniques**, each with a fixed effect: Peacemaker, Leech and Hornet (blasters),
   Dragon Breath and Thunderclap (shotguns), Widowmaker (grenade), Sunlance (laser), Stormcaller (pulse
   gun), Bouncer (pulse shotgun) and Mincer (shredder).
@@ -86,6 +106,8 @@ your `winbuild/ruffle` (patched Ruffle checkout) and `winbuild/toolchain` into `
 | Rarity colours, damage bonus, perk count, value | `mod_src/Weapons/WeaponBase.as` (`rarityColors`, `rarityDamage`, `rarityPerks`, `rarityValue`) |
 | Rarity odds, max rarity per mission, uniques | `mod_src/Weapons/WeaponGenerator.as` (`rarityWeights`, `maxRarity()`, `uniques`) |
 | Perk strength rolls | `mod_src/WeaponPlugin/WeaponPluginSplash.as` → `roll()` |
+| New weapon types: damage, fire rate, level, icon colour | `mod_src/Weapons/WeaponGenerator.as` → `variants` |
+| Titan stats of the original weapons | `mod_src/Weapons/<Weapon>.as` (`levelDamage`, `levelRequired`, 4th entries) |
 
 The `mod_src/` classes are compiled into `original/robokill.swf` with JPEXS (`tools/ffdec-26.3.0`).
 `decompiled/` holds the untouched decompiled source for reference. Edits in `mod_src/` are saved to

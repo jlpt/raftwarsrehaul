@@ -1,0 +1,105 @@
+--- a/Weapons/Grenade.as
++++ b/Weapons/Grenade.as
+@@ -5,12 +5,13 @@
+    import Objects.GrenadeBullet;
+    import WeaponPlugin.WeaponPluginSplash;
+    
++   // MOD: level 3 is the new Titan tier; variant > 0 makes this one of the new weapon types (WeaponBase.variants)
+    public class Grenade extends WeaponBase
+    {
+       
+-      public static var levelDamage:Array = [10,20,30];
++      public static var levelDamage:Array = [10,20,30,210];
+       
+-      public static var levelRequired:Array = [5,10,15];
++      public static var levelRequired:Array = [5,10,15,44];
+       
+       public function Grenade()
+       {
+@@ -27,26 +28,38 @@
+       
+       override public function playerMinLevel() : int
+       {
++         if(variant)
++         {
++            return variantReq();
++         }
+          return levelRequired[level] - 1;
+       }
+       
+       override public function _inGameImage() : Class
+       {
+-         return [Embeds.grenade_s_png,Embeds.grenade_m_png,Embeds.grenade_h_png][level];
++         return [Embeds.grenade_s_png,Embeds.grenade_m_png,Embeds.grenade_h_png,Embeds.grenade_h_png][level];
+       }
+       
+       override public function icon() : Class
+       {
+-         return [Embeds.grenade_png,Embeds.grenade_2_png,Embeds.grenade_3_png][level];
++         return [Embeds.grenade_png,Embeds.grenade_2_png,Embeds.grenade_3_png,Embeds.grenade_3_png][level];
+       }
+       
+       override public function name() : String
+       {
+-         return ["LIGHT GRENADE","MEDIUM GRENADE","HEAVY GRENADE"][level];
++         if(variant)
++         {
++            return variantName(); // MOD: new weapon types
++         }
++         return ["LIGHT GRENADE","MEDIUM GRENADE","HEAVY GRENADE","TITAN GRENADE"][level];
+       }
+       
+       override public function _rateOfFire() : int
+       {
++         if(variant)
++         {
++            return variantRof();
++         }
+          switch(level)
+          {
+             case 0:
+@@ -55,6 +68,8 @@
+                return 70;
+             case 2:
+                return 80;
++            case 3:
++               return 70;
+             default:
+                return 100;
+          }
+@@ -62,16 +77,25 @@
+       
+       override public function _pointWorth() : int
+       {
+-         return [30,50,70][level];
++         return [30,50,70,90][level];
+       }
+       
+       override public function _damage() : Number
+       {
++         if(variant)
++         {
++            return variantDamage();
++         }
+          return levelDamage[level];
+       }
+       
+       override public function shoot(param1:GameScene, param2:Number, param3:Number, param4:Number, param5:Number) : void
+       {
++         if(variant)
++         {
++            shootVariant(param1,param2,param3,param4,param5);
++            return;
++         }
+          var _loc6_:GrenadeBullet = new GrenadeBullet(param1,param2,param3);
+          _loc6_.setAngle(Math.atan2(param5 - param3,param4 - param2) * 180 / Math.PI);
+          _loc6_.wep = this;
+@@ -79,7 +103,7 @@
+          {
+             _loc6_.bounceSet = Embeds.mGrenadeShot;
+          }
+-         else if(level == 2)
++         else if(level >= 2) // MOD: Titan uses the heavy grenade
+          {
+             _loc6_.bounceSet = Embeds.hGrenadeShot;
+          }

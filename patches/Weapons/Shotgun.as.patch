@@ -1,0 +1,96 @@
+--- a/Weapons/Shotgun.as
++++ b/Weapons/Shotgun.as
+@@ -4,12 +4,13 @@
+    import GlobalSetup.Embeds;
+    import Objects.ShotgunBullet;
+    
++   // MOD: level 3 is the new Titan tier; variant > 0 makes this one of the new weapon types (WeaponBase.variants)
+    public class Shotgun extends WeaponBase
+    {
+       
+-      public static var levelDamage:Array = [2,3,5];
++      public static var levelDamage:Array = [2,3,5,44];
+       
+-      public static var levelRequired:Array = [2,6,12];
++      public static var levelRequired:Array = [2,6,12,43];
+       
+       public function Shotgun()
+       {
+@@ -18,26 +19,38 @@
+       
+       override public function playerMinLevel() : int
+       {
++         if(variant)
++         {
++            return variantReq();
++         }
+          return levelRequired[level] - 1;
+       }
+       
+       override public function _inGameImage() : Class
+       {
+-         return [Embeds.shotgun_s_png,Embeds.shotgun_m_png,Embeds.shotgun_h_png][level];
++         return [Embeds.shotgun_s_png,Embeds.shotgun_m_png,Embeds.shotgun_h_png,Embeds.shotgun_h_png][level];
+       }
+       
+       override public function icon() : Class
+       {
+-         return [Embeds.shotgun_png,Embeds.shotgun_2_png,Embeds.shotgun_3_png][level];
++         return [Embeds.shotgun_png,Embeds.shotgun_2_png,Embeds.shotgun_3_png,Embeds.shotgun_3_png][level];
+       }
+       
+       override public function name() : String
+       {
+-         return ["LIGHT SHOTGUN","MEDIUM SHOTGUN","HEAVY SHOTGUN"][level];
++         if(variant)
++         {
++            return variantName(); // MOD: new weapon types
++         }
++         return ["LIGHT SHOTGUN","MEDIUM SHOTGUN","HEAVY SHOTGUN","TITAN SHOTGUN"][level];
+       }
+       
+       override public function _rateOfFire() : int
+       {
++         if(variant)
++         {
++            return variantRof();
++         }
+          switch(level)
+          {
+             case 0:
+@@ -46,6 +59,8 @@
+                return 60;
+             case 2:
+                return 70;
++            case 3:
++               return 60;
+             default:
+                return 100;
+          }
+@@ -53,16 +68,25 @@
+       
+       override public function _pointWorth() : int
+       {
+-         return [10,30,50][level];
++         return [10,30,50,70][level];
+       }
+       
+       override public function _damage() : Number
+       {
++         if(variant)
++         {
++            return variantDamage();
++         }
+          return levelDamage[level];
+       }
+       
+       override public function shoot(param1:GameScene, param2:Number, param3:Number, param4:Number, param5:Number) : void
+       {
++         if(variant)
++         {
++            shootVariant(param1,param2,param3,param4,param5);
++            return;
++         }
+          var _loc7_:ShotgunBullet = null;
+          var _loc6_:int = 0;
+          while(_loc6_ < 4)

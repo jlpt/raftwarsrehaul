@@ -1,0 +1,10 @@
+--- a/ObjectBase/GrenadeBulletBase.as
++++ b/ObjectBase/GrenadeBulletBase.as
+@@ -55,6 +55,7 @@
+       
+       override public function removeWithEffects() : void
+       {
++         impact(null); // MOD: cluster grenades burst when they hit a wall
+          Sounds.rocketHit.play();
+          emitConditionalParticles("RocketExplosion");
+          remove();

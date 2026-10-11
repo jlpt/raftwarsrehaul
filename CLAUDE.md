@@ -65,6 +65,10 @@ Verified pitfalls:
   plus the fields their `serializeFields()` lists. New fields are fine (old saves leave them at their
   default), so give every new field a default that means "old save". `WeaponGenerator.uniques` is stored by
   index: only append to it.
+- **New weapon types are `variant`s of the seven weapon classes** for the same reason; `WeaponBase.variant`
+  is saved and `WeaponGenerator.variants` is indexed by it, so only append to that table.
+- **Don't refer to subclasses in a base class's static initialiser** (for example a table of weapon classes
+  inside `WeaponBase`): the subclasses don't exist yet when it runs. Keep such tables in another class.
 - **New perks are `kind`s of `WeaponPluginSplash`** (kind 0 is the original grenade splash), because a new
   plugin class can't be added.
 - **`GameObject.tint(r,g,b)` is a channel-mixing matrix**, not a multiply (it suits the red enemy sprites).
@@ -119,21 +123,31 @@ Verified pitfalls:
 | Player weapons and items | `decompiled/scripts/Weapons/` (for example `Blaster.levelDamage`) |
 | Weapon rarity (MOD): names, colours, damage bonus, perk count, value, badges and floor glows | `mod_src/Weapons/WeaponBase.as` (statics at the top, `rarityBadge`, `rarityGlow`) |
 | Rarity odds, max rarity per mission, unique weapons, debug keys | `mod_src/Weapons/WeaponGenerator.as` (`rarityWeights`, `maxRarity`, `uniques`, `debugUpdate`) |
+| New weapon types (MOD): stats table | `mod_src/Weapons/WeaponGenerator.as` → `variants` (host class, name, code, text, req/dmg/rof per level, icon hue) |
+| New weapon types: firing, bursts, icons | `mod_src/Weapons/WeaponBase.as` (`shootVariant`, `bulletImpact`, `iconData`, `setVariant`); each weapon class hands `name`/`playerMinLevel`/`_damage`/`_rateOfFire`/`shoot` to these when `variant > 0` |
+| Bullet behaviour hooks (MOD): life, drag, blast, pierce, homing, damageMult, impact | `mod_src/ObjectBase/BulletBase.as`; railgun line hits in `LaserBulletBase`; grenade wall impact in `GrenadeBulletBase` |
 | New perks (MOD): burn, chain, crit, multishot, homing, siphon, volatile | `mod_src/WeaponPlugin/WeaponPluginSplash.as` (`kind`); effects in `EnemyBase` (burn, crit/kill hooks in `hitBy`), `BulletBase.steer` (homing), `WeaponBase.fire` (multishot), `WeaponBase.onKill` |
 | Original level data | `decompiled/scripts/Levels/` (parsed to `modtools/levels.json` by `parse_levels.py`) |
 
 ## Testing on Linux
 
-Test scripts (all use the debug build, a throwaway save, and fail on any ActionScript error in Ruffle's log):
+Test scripts (all use the debug build, a throwaway save, and fail on any ActionScript error in Ruffle's log;
+they share `modtools/game.sh`: `game_start`, `game_mission X Y`, `x …`, `game_end`):
 - `modtools/smoke_test.sh [SWF]`: menus → Mission 1, walk and shoot.
+- `modtools/weapons_test.sh`: every weapon type at every level must build, draw and fire (`TYPECHECK done:
+  N ok, 0 failed`), then five rounds of equip-four-types + spawn enemies + shoot, the save check, the inventory with
+  every type (`build/weapons_*.png`).
 - `modtools/rarity_test.sh`: drops one weapon of each rarity, equips uniques, checks the save round trip,
   screenshots the drops, firing, inventory and two tooltips (`build/rarity_*.png`).
 - `modtools/perk_test.sh`: three rounds of equip uniques + spawn enemies + shoot; prints how often each perk
   triggered (`build/perk_*.png`).
-- `modtools/shop_test.sh`: opens the shop in Mission 13 and lists its stock (`build/shop.png`).
+- `modtools/shop_test.sh`: opens the shop in Mission 13 at player level 1 and 51 and lists its stock
+  (`build/shop.png`, `build/shop_late.png`).
 
 Debug-build keys (`WeaponGenerator.debugKeys`): G drop next rarity, H drop next unique, J equip next four
-uniques, K spawn three grunts and a hulk, L save round-trip check, O open the shop. Weapons generated and
+uniques, K spawn three grunts and a hulk, L save round-trip check, O open the shop, N equip the next four
+weapon types, V check every type at every level, U fill the inventory with every type, I god mode, P +10
+player levels (and restock the shop). Weapons generated and
 perks triggered are `trace`d to Ruffle's log (`WEAPON …`, `PERK …`, `SAVE …`).
 
 Headless machines (no Xephyr, no `$DISPLAY`): the smoke test starts `Xvfb :99` instead, and `vshot.sh`

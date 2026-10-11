@@ -1,11 +1,16 @@
 --- a/Weapons/WeaponBase.as
 +++ b/Weapons/WeaponBase.as
-@@ -5,59 +5,327 @@
+@@ -5,59 +5,745 @@
     import GlobalSetup.Embeds;
     import ObjectBase.BulletBase;
     import ObjectBase.EnemyBase;
 +   import ObjectBase.PlayerBase;
++   import Objects.Bullet;
++   import Objects.GrenadeBullet;
++   import Objects.LaserBullet;
 +   import Objects.PickupText;
++   import Objects.PulseShotgunBullet;
++   import Objects.ShotgunBullet;
 +   import Scenes.MainMenu;
     import Scenes.MainScene;
     import Tools.HumanReadable;
@@ -24,10 +29,12 @@
 +   import flash.filters.GlowFilter;
 +   import flash.geom.Matrix;
 +   import flash.geom.Point;
++   import flash.geom.ColorTransform;
 +   import flash.geom.Rectangle;
 +   import flash.text.TextField;
 +   import flash.text.TextFieldAutoSize;
 +   import flash.text.TextFormat;
++   import flash.utils.getQualifiedClassName;
 +   import flash.utils.getTimer;
 +
     public class WeaponBase extends InventoryItem
@@ -74,6 +81,42 @@
 +      public static var glowCache:Array = new Array();
 +
 +      public static var lastCritText:int = 0;
++      
++      // MOD: new weapon types. Each is a `variant` of one of the game's seven weapon classes (a new class
++      // can't be added, and saves store weapons by class name), so the host class keeps its sounds and
++      // muzzle effects. Weapons store their variant number: only ever append to this list.
++      // req/dmg/rof are per level (light, medium, heavy, titan); rof is ticks between shots; hue recolours
++      // the weapon in its icon; code is printed on the icon.
++      public static const TWIN:int = 1;
++      
++      public static const MINIGUN:int = 2;
++      
++      public static const SCATTER:int = 3;
++      
++      public static const FLAK:int = 4;
++      
++      public static const RAIL:int = 5;
++      
++      public static const PRISM:int = 6;
++      
++      public static const CLUSTER:int = 7;
++      
++      public static const MISSILE:int = 8;
++      
++      public static const ACID:int = 9;
++      
++      public static const TESLA:int = 10;
++      
++      public static const SHOCKWAVE:int = 11;
++      
++      public static const SEEKER:int = 12;
++      
++      // (the table itself is WeaponGenerator.variants: it refers to the weapon subclasses, which don't exist yet
++      // while this base class initialises)
++      
++      public static var levelNames:Array = ["LIGHT","MEDIUM","HEAVY","TITAN"];
++      
++      public static var iconCache:Object = new Object();
 +
        public var level:int = Random.randInt(0,2);
 -      
@@ -93,6 +136,13 @@
 +      public var rarity:int = -1;
 +
 +      public var unique:int = -1;
++      
++      public var variant:int = 0;
++      
++      // minigun spin-up (not saved): 0 idle .. 1 full speed, and when it last fired (getTimer ms)
++      public var spin:Number = 0;
++      
++      public var lastFire:int = -10000;
 +
        public function WeaponBase()
        {
@@ -259,10 +309,378 @@
        public function rofString() : String
        {
           var _loc1_:Number = 100 / rateOfFire();
++         if(variant == MINIGUN)
++         {
++            return "UP TO " + HumanReadable.truncateFloat(100 / Math.max(1,int(rateOfFire() / (3 - 2 * currentSpin())))) + " PER SEC"; // MOD
++         }
           var _loc2_:String = HumanReadable.truncateFloat(_loc1_);
           return _loc2_ + " PER SECOND";
        }
--      
+       
++      // MOD: ---- new weapon types (see WeaponGenerator.variants) ----
++      public function vinfo() : Object
++      {
++         return variant > 0 && variant < WeaponGenerator.variants.length ? WeaponGenerator.variants[variant] : null;
++      }
++      
++      public function variantName() : String
++      {
++         return levelNames[level] + " " + vinfo().name;
++      }
++      
++      public function variantReq() : int
++      {
++         return vinfo().req[level] - 1;
++      }
++      
++      public function variantDamage() : Number
++      {
++         return vinfo().dmg[level];
++      }
++      
++      // the minigun starts at a third of its top speed and spins up while it keeps firing
++      public function variantRof() : int
++      {
++         var _loc1_:int = vinfo().rof[level];
++         if(variant == MINIGUN)
++         {
++            _loc1_ = Math.round(_loc1_ * (3 - 2 * currentSpin()));
++         }
++         return _loc1_;
++      }
++      
++      public function currentSpin() : Number
++      {
++         return getTimer() - lastFire > 400 ? 0 : spin;
++      }
++      
++      // make this weapon a new weapon type, with the perks that come built in
++      public function setVariant(param1:int) : void
++      {
++         var _loc2_:WeaponPluginBase = null;
++         variant = param1;
++         switch(param1)
++         {
++            case ACID:
++               addPlugin(WeaponPluginSplash.make(WeaponPluginSplash.BURN,100,0,true));
++               break;
++            case TESLA:
++               addPlugin(WeaponPluginSplash.make(WeaponPluginSplash.CHAIN,50,3,true));
++               break;
++            case SHOCKWAVE:
++               _loc2_ = new WeaponPluginKnockback();
++               _loc2_.isIntrinsic = true;
++               addPlugin(_loc2_);
++         }
++      }
++      
++      // a bullet of one of the new types, with an optional borrowed sprite (enemy projectiles)
++      public function vbullet(param1:BulletBase, param2:Number, param3:Number, param4:Class = null) : BulletBase
++      {
++         var _loc5_:BitmapData = null;
++         param1.setAngle(param2);
++         param1.speed = speedMult() * param3;
++         param1.wep = this;
++         param1.tag = variant;
++         if(param4)
++         {
++            _loc5_ = new param4().bitmapData;
++            Bitmap(param1.obj).bitmapData = _loc5_;
++            param1.baseWidth = _loc5_.width;
++            param1.baseHeight = _loc5_.height;
++         }
++         else
++         {
++            applyLevelToBullet(param1);
++         }
++         return param1;
++      }
++      
++      public function shootVariant(param1:GameScene, param2:Number, param3:Number, param4:Number, param5:Number) : void
++      {
++         var _loc7_:BulletBase = null;
++         var _loc8_:int = 0;
++         var _loc9_:LaserBullet = null;
++         var _loc10_:Number = NaN;
++         var _loc11_:MainScene = MainScene(param1);
++         var _loc6_:Number = Math.atan2(param5 - param3,param4 - param2) * 180 / Math.PI;
++         switch(variant)
++         {
++            case TWIN:
++               _loc8_ = -1;
++               while(_loc8_ <= 1)
++               {
++                  _loc7_ = vbullet(new Bullet(param1,param2 + Math.cos((_loc6_ + 90) * Math.PI / 180) * 6 * _loc8_,param3 + Math.sin((_loc6_ + 90) * Math.PI / 180) * 6 * _loc8_),_loc6_ + (Math.random() - 0.5) * 2,7 + Math.random());
++                  _loc7_.additive = true;
++                  _loc8_ += 2;
++               }
++               break;
++            case MINIGUN:
++               _loc7_ = vbullet(new Bullet(param1,param2,param3),_loc6_ + (Math.random() - 0.5) * 14,8 + Math.random() * 2);
++               _loc7_.additive = true;
++               break;
++            case SCATTER:
++               _loc8_ = 0;
++               while(_loc8_ < 8)
++               {
++                  _loc7_ = vbullet(new ShotgunBullet(param1,param2,param3),_loc6_ + (_loc8_ - 3.5) * 6.5 + (Math.random() - 0.5) * 3,7 + Math.random() * 2);
++                  _loc7_.life = 22;
++                  _loc8_++;
++               }
++               break;
++            case FLAK:
++               _loc8_ = 0;
++               while(_loc8_ < 2)
++               {
++                  _loc7_ = vbullet(new ShotgunBullet(param1,param2,param3),_loc6_ + (_loc8_ - 0.5) * 8,6);
++                  Bitmap(_loc7_.obj).bitmapData = _loc7_.heavySprite;
++                  _loc7_.baseScaleX = _loc7_.baseScaleY = 1.6;
++                  _loc7_.life = 24;
++                  _loc8_++;
++               }
++               break;
++            case RAIL:
++            case PRISM:
++               param2 = Math.max(_loc11_.startx,Math.min(_loc11_.endx,param2));
++               param3 = Math.max(_loc11_.starty,Math.min(_loc11_.endy,param3));
++               _loc8_ = variant == RAIL ? 0 : -1;
++               while(_loc8_ <= (variant == RAIL ? 0 : 1))
++               {
++                  _loc9_ = new LaserBullet(param1,param2,param3);
++                  _loc9_.wep = this;
++                  _loc9_.tag = variant;
++                  _loc9_.startx = param2;
++                  _loc9_.starty = param3;
++                  _loc10_ = (_loc6_ + 12 * _loc8_) * Math.PI / 180;
++                  if(variant == RAIL)
++                  {
++                     // to the edge of the room
++                     _loc9_.endx = param2;
++                     _loc9_.endy = param3;
++                     while(_loc9_.endx > _loc11_.startx && _loc9_.endx < _loc11_.endx && _loc9_.endy > _loc11_.starty && _loc9_.endy < _loc11_.endy)
++                     {
++                        _loc9_.endx += Math.cos(_loc10_) * 8;
++                        _loc9_.endy += Math.sin(_loc10_) * 8;
++                     }
++                     _loc9_.obj.transform.colorTransform = new ColorTransform(0.5,1.1,1.4);
++                  }
++                  else
++                  {
++                     _loc9_.endx = param2 + Math.cos(_loc10_) * Math.sqrt((param4 - param2) * (param4 - param2) + (param5 - param3) * (param5 - param3));
++                     _loc9_.endy = param3 + Math.sin(_loc10_) * Math.sqrt((param4 - param2) * (param4 - param2) + (param5 - param3) * (param5 - param3));
++                     _loc9_.obj.transform.colorTransform = new ColorTransform(1.3,0.6,1.3);
++                  }
++                  _loc9_.setAngle(Math.atan2(_loc9_.endy - param3,_loc9_.endx - param2) * 180 / Math.PI);
++                  _loc9_.baseScaleX = 2.5;
++                  _loc9_.baseScaleY = 0;
++                  applyLevelToBullet(_loc9_);
++                  _loc8_++;
++               }
++               break;
++            case CLUSTER:
++               _loc7_ = vbullet(new GrenadeBullet(param1,param2,param3),_loc6_,5);
++               if(level == 1)
++               {
++                  GrenadeBullet(_loc7_).bounceSet = Embeds.mGrenadeShot;
++               }
++               else if(level >= 2)
++               {
++                  GrenadeBullet(_loc7_).bounceSet = Embeds.hGrenadeShot;
++               }
++               break;
++            case MISSILE:
++               _loc8_ = -1;
++               while(_loc8_ <= 1)
++               {
++                  _loc7_ = vbullet(new Bullet(param1,param2,param3),_loc6_ + 18 * _loc8_,4.5,Embeds.spider_shot_png);
++                  _loc7_.homing = 5;
++                  _loc7_.blast = 0.5;
++                  _loc7_.blastRadius = 60;
++                  _loc8_ += 2;
++               }
++               break;
++            case ACID:
++               _loc7_ = vbullet(new Bullet(param1,param2,param3),_loc6_ + (Math.random() - 0.5) * 20,6.5 + Math.random(),Embeds.droidshot_png);
++               _loc7_.obj.transform.colorTransform = new ColorTransform(0.4,1.4,0.3);
++               _loc7_.additive = true;
++               _loc7_.drag = 0.96;
++               _loc7_.life = 34;
++               break;
++            case TESLA:
++               _loc7_ = vbullet(new Bullet(param1,param2,param3),_loc6_ + (Math.random() - 0.5) * 2,13,Embeds.spidergunnershot_png);
++               _loc7_.additive = true;
++               _loc7_.homing = 8;
++               break;
++            case SHOCKWAVE:
++               _loc8_ = 0;
++               while(_loc8_ < 16)
++               {
++                  _loc7_ = vbullet(new PulseShotgunBullet(param1,param2,param3),_loc6_ + _loc8_ * 22.5,7);
++                  _loc7_.additive = true;
++                  _loc7_.life = 26;
++                  PulseShotgunBullet(_loc7_).bounceCount = 10;
++                  _loc8_++;
++               }
++               break;
++            case SEEKER:
++               _loc7_ = vbullet(new Bullet(param1,param2,param3),_loc6_,2.6,Embeds.boss_bullet_png);
++               _loc7_.additive = true;
++               _loc7_.homing = 6;
++               _loc7_.life = 450;
++               _loc7_.blast = 0.6;
++               _loc7_.blastRadius = 80;
++         }
++      }
++      
++      // MOD: a bullet from this weapon hit something or expired: flak shells and cluster grenades burst
++      public function bulletImpact(param1:BulletBase, param2:EnemyBase) : void
++      {
++         var _loc3_:int = 0;
++         var _loc4_:BulletBase = null;
++         if(param1.tag != FLAK && param1.tag != CLUSTER || param1.damageMult < 1)
++         {
++            return;
++         }
++         var _loc5_:int = param1.tag == FLAK ? 6 : 8;
++         var _loc6_:Number = Math.random() * 360;
++         _loc3_ = 0;
++         while(_loc3_ < _loc5_)
++         {
++            _loc4_ = param1.tag == FLAK ? new ShotgunBullet(param1.gs,param1.basex,param1.basey) : new Bullet(param1.gs,param1.basex,param1.basey);
++            _loc4_.setAngle(_loc6_ + _loc3_ * 360 / _loc5_ + (Math.random() - 0.5) * 20);
++            _loc4_.speed = 5 + Math.random() * 2;
++            _loc4_.wep = this;
++            _loc4_.damageMult = param1.tag == FLAK ? 0.5 : 0.35;
++            _loc4_.life = param1.tag == FLAK ? 16 : 18;
++            _loc4_.additive = true;
++            if(param2)
++            {
++               _loc4_.hitList[param2.id] = true;
++            }
++            _loc3_++;
++         }
++      }
++      
++      // inventory icon: Titan swaps the L/M/H letter for a T; new types recolour the weapon (not the blue
++      // tile) and print their code in the corner
++      public function iconData() : BitmapData
++      {
++         var _loc2_:BitmapData = null;
++         var _loc1_:String = getQualifiedClassName(this) + level + "_" + variant;
++         if(!iconCache[_loc1_])
++         {
++            _loc2_ = new (icon())().bitmapData.clone();
++            if(level >= 3)
++            {
++               drawTitanLetter(_loc2_);
++            }
++            if(vinfo())
++            {
++               recolorWeapon(_loc2_,vinfo().hue);
++               drawCode(_loc2_,vinfo().code);
++            }
++            iconCache[_loc1_] = _loc2_;
++         }
++         return iconCache[_loc1_];
++      }
++      
++      public static function drawTitanLetter(param1:BitmapData) : void
++      {
++         var _loc2_:int = 0;
++         var _loc3_:int = 0;
++         var _loc4_:uint = 0;
++         var _loc5_:Array = ["#######","...#...","...#...","...#...","...#..."];
++         _loc3_ = 30;
++         while(_loc3_ <= 35)
++         {
++            _loc2_ = 4;
++            while(_loc2_ <= 11)
++            {
++               _loc4_ = param1.getPixel32(_loc2_,_loc3_);
++               if((_loc4_ & 16777215) == 16768512 || (_loc4_ & 16777215) == 0)
++               {
++                  param1.setPixel32(_loc2_,_loc3_,param1.getPixel32(_loc2_,29));
++               }
++               _loc2_++;
++            }
++            _loc3_++;
++         }
++         _loc3_ = 0;
++         while(_loc3_ < 5)
++         {
++            _loc2_ = 0;
++            while(_loc2_ < 7)
++            {
++               if(_loc5_[_loc3_].charAt(_loc2_) == "#")
++               {
++                  param1.setPixel32(5 + _loc2_,31 + _loc3_,4278190080);
++                  param1.setPixel32(4 + _loc2_,30 + _loc3_,4294958592);
++               }
++               _loc2_++;
++            }
++            _loc3_++;
++         }
++      }
++      
++      // give every coloured pixel outside the blue band the hue param2, keeping saturation and brightness
++      public static function recolorWeapon(param1:BitmapData, param2:Number) : void
++      {
++         var _loc3_:int = 0;
++         var _loc4_:int = 0;
++         var _loc5_:uint = 0;
++         var _loc6_:Number = NaN;
++         var _loc7_:Number = NaN;
++         var _loc8_:Number = NaN;
++         var _loc9_:Number = NaN;
++         var _loc10_:Number = NaN;
++         var _loc11_:Number = NaN;
++         var _loc12_:Number = NaN;
++         var _loc13_:Number = NaN;
++         var _loc14_:Array = null;
++         var _loc15_:Number = NaN;
++         _loc4_ = 0;
++         while(_loc4_ < param1.height)
++         {
++            _loc3_ = 0;
++            while(_loc3_ < param1.width)
++            {
++               _loc5_ = param1.getPixel32(_loc3_,_loc4_);
++               _loc6_ = (_loc5_ >> 16 & 255) / 255;
++               _loc7_ = (_loc5_ >> 8 & 255) / 255;
++               _loc8_ = (_loc5_ & 255) / 255;
++               _loc9_ = Math.max(_loc6_,_loc7_,_loc8_);
++               _loc10_ = _loc9_ - Math.min(_loc6_,_loc7_,_loc8_);
++               // hue of this pixel; the icon's tile is the blue band (0.53-0.72), the level letter sits in the
++               // bottom-left corner: both keep their colours
++               _loc15_ = _loc10_ == 0 ? 0 : (_loc9_ == _loc6_ ? (_loc7_ - _loc8_) / _loc10_ : (_loc9_ == _loc7_ ? (_loc8_ - _loc6_) / _loc10_ + 2 : (_loc6_ - _loc7_) / _loc10_ + 4)) / 6;
++               if(_loc15_ < 0)
++               {
++                  _loc15_ += 1;
++               }
++               if(_loc10_ > 0.15 && _loc9_ > 0.15 && !(_loc15_ > 0.53 && _loc15_ < 0.72) && !(_loc3_ < 13 && _loc4_ > 28 && param1.width == 40))
++               {
++                  _loc11_ = _loc10_ / _loc9_;
++                  _loc12_ = param2 * 6;
++                  _loc13_ = _loc12_ - Math.floor(_loc12_);
++                  _loc14_ = [[1,_loc13_,0],[1 - _loc13_,1,0],[0,1,_loc13_],[0,1 - _loc13_,1],[_loc13_,0,1],[1,0,1 - _loc13_]][int(_loc12_) % 6];
++                  param1.setPixel32(_loc3_,_loc4_,(_loc5_ & 4278190080) | int(_loc9_ * 255 * (1 - _loc11_ + _loc11_ * _loc14_[0])) << 16 | int(_loc9_ * 255 * (1 - _loc11_ + _loc11_ * _loc14_[1])) << 8 | int(_loc9_ * 255 * (1 - _loc11_ + _loc11_ * _loc14_[2])));
++               }
++               _loc3_++;
++            }
++            _loc4_++;
++         }
++      }
++      
++      public static function drawCode(param1:BitmapData, param2:String) : void
++      {
++         var _loc3_:TextField = new TextField();
++         _loc3_.embedFonts = true;
++         _loc3_.autoSize = TextFieldAutoSize.LEFT;
++         _loc3_.defaultTextFormat = new TextFormat("Pixelation-34",7,16777215,true,false);
++         _loc3_.text = param2;
++         _loc3_.filters = [new GlowFilter(0,1,2,2,6,1)];
++         param1.draw(_loc3_,new Matrix(1,0,0,1,param1.width - _loc3_.textWidth - 7,param1.height - 15));
++      }
 +
 +      // MOD: the rarity this weapon shows and gets bonuses for
 +      public function effectiveRarity() : int
@@ -299,7 +717,7 @@
        override public function getGameObject(param1:GameScene) : GameObject
        {
 -         var _loc3_:Bitmap = null;
-          var _loc2_:Bitmap = new (icon())();
+-         var _loc2_:Bitmap = new (icon())();
 -         if(properPluginCount() == 1)
 -         {
 -            _loc3_ = new Embeds.uncommon_png();
@@ -308,12 +726,12 @@
 -         {
 -            _loc3_ = new Embeds.rare_png();
 -         }
++         var _loc2_:Bitmap = new Bitmap(iconData().clone());
 +         var _loc3_:BitmapData = rarityBadge(effectiveRarity());
           if(_loc3_ != null)
           {
 -            _loc3_.x = _loc2_.width - _loc3_.width;
 -            _loc2_.bitmapData.draw(_loc3_,_loc3_.transform.matrix);
-+            _loc2_.bitmapData = _loc2_.bitmapData.clone();
 +            _loc2_.bitmapData.draw(_loc3_,new Matrix(1,0,0,1,_loc2_.width - _loc3_.width,0));
           }
           return new GameObject(param1,_loc2_,"AfterTextLayer",0,0);
@@ -349,7 +767,7 @@
        override public function properties() : String
        {
           var _loc2_:WeaponPluginBase = null;
-@@ -66,27 +334,27 @@
+@@ -66,27 +752,27 @@
           {
              if(!_loc2_.isIntrinsic)
              {
@@ -382,7 +800,7 @@
        public function handleHit(param1:BulletBase, param2:EnemyBase) : void
        {
           var _loc3_:WeaponPluginBase = null;
-@@ -99,7 +367,88 @@
+@@ -99,7 +785,88 @@
              _loc3_.hitEnemy(param1,param2);
           }
        }
@@ -472,7 +890,7 @@
        public function speedMult() : Number
        {
           var _loc2_:WeaponPluginBase = null;
-@@ -113,17 +462,17 @@
+@@ -113,17 +880,17 @@
           }
           return _loc1_;
        }
@@ -493,7 +911,7 @@
        public function pointWorth() : int
        {
           var _loc2_:WeaponPluginBase = null;
-@@ -134,24 +483,52 @@
+@@ -134,24 +901,61 @@
           }
           return _loc1_;
        }
@@ -508,6 +926,11 @@
 +      public function fire(param1:GameScene, param2:Number, param3:Number, param4:Number, param5:Number) : void
 +      {
 +         var _loc9_:Number = NaN;
++         if(variant == MINIGUN)
++         {
++            spin = getTimer() - lastFire > 400 ? 0 : Math.min(1,spin + 0.08);
++            lastFire = getTimer();
++         }
 +         shoot(param1,param2,param3,param4,param5);
 +         var _loc6_:int = perk(WeaponPluginSplash.MULTISHOT);
 +         if(_loc6_ <= 0)
@@ -546,6 +969,10 @@
 +         {
 +            _loc3_ = [_loc5_.text,_loc1_];
 +         }
++         else if(vinfo() && _loc1_.length <= 40)
++         {
++            _loc3_ = [vinfo().text,properPluginCount() > 0 ? _loc1_ : ""]; // MOD: new weapon types describe themselves
++         }
 +         if(_loc2_ > COMMON)
 +         {
 +            _loc3_[0] = _loc7_ + _loc3_[0];
@@ -553,7 +980,7 @@
           }
           var _loc4_:Array = ["REQUIRED LEVEL",playerMinLevel() + 1];
           if(MainScene(GameScene.current()).player.level < playerMinLevel())
-@@ -159,24 +536,25 @@
+@@ -159,24 +963,25 @@
              _loc4_[0] = "<RED>" + _loc4_[0];
              _loc4_[1] = "<RED>" + _loc4_[1];
           }
@@ -585,7 +1012,7 @@
        public function properPluginCount() : int
        {
           var _loc2_:WeaponPluginBase = null;
-@@ -190,7 +568,7 @@
+@@ -190,7 +995,7 @@
           }
           return _loc1_;
        }
@@ -594,7 +1021,7 @@
        public function rateOfFire() : int
        {
           var _loc2_:WeaponPluginBase = null;
-@@ -202,14 +580,19 @@
+@@ -202,40 +1007,59 @@
                 _loc1_ = _loc1_ * (100 - WeaponPluginRateOfFire(_loc2_).percent) / 100;
              }
           }
@@ -617,8 +1044,23 @@
 +
        public function getWeaponObject(param1:GameScene) : GameObject
        {
++         var _loc2_:BitmapData = null;
++         var _loc3_:String = null;
++         if(inGameImage() && vinfo())
++         {
++            // MOD: the weapon on the robot gets its type's colour too
++            _loc3_ = "ingame_" + getQualifiedClassName(this) + level + "_" + variant;
++            if(!iconCache[_loc3_])
++            {
++               _loc2_ = new (inGameImage())().bitmapData.clone();
++               recolorWeapon(_loc2_,vinfo().hue);
++               iconCache[_loc3_] = _loc2_;
++            }
++            return new GameObject(param1,new Bitmap(iconCache[_loc3_]),"Player",0,0);
++         }
           if(inGameImage())
-@@ -218,12 +601,12 @@
+          {
+             return new GameObject(param1,inGameImage(),"Player",0,0);
           }
           return null;
        }
@@ -635,7 +1077,12 @@
        public function applyLevelToBullet(param1:BulletBase) : *
        {
           if(level == 1)
-@@ -235,7 +618,7 @@
+          {
+             Bitmap(param1.obj).bitmapData = param1.mediumSprite;
+          }
+-         else if(level == 2)
++         else if(level >= 2)
+          {
              Bitmap(param1.obj).bitmapData = param1.heavySprite;
           }
        }
@@ -644,7 +1091,7 @@
        public function addPlugin(param1:WeaponPluginBase) : void
        {
           if(param1.isApplicable(this))
-@@ -243,32 +626,39 @@
+@@ -243,32 +1067,39 @@
              plugins.push(param1);
           }
        }
@@ -655,7 +1102,7 @@
 -         return ["level","plugins"];
 -      }
 -      
-+         return ["level","plugins","rarity","unique"];
++         return ["level","plugins","rarity","unique","variant"];
 +      }
 +
        public function recoilAmount() : Number
@@ -694,7 +1141,7 @@
        public function pickupImage() : Class
        {
           if(level == 0)
-@@ -283,4 +673,3 @@
+@@ -283,4 +1114,3 @@
        }
     }
  }

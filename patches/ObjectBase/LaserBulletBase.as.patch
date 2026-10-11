@@ -1,0 +1,54 @@
+--- a/ObjectBase/LaserBulletBase.as
++++ b/ObjectBase/LaserBulletBase.as
+@@ -4,6 +4,7 @@
+    import GameScene.GameScene;
+    import Objects.FloorProp;
+    import Tools.Interpolation;
++   import Weapons.WeaponBase;
+    import flash.display.BlendMode;
+    
+    public class LaserBulletBase extends BulletBase
+@@ -38,6 +39,17 @@
+       {
+       }
+       
++      // MOD: distance from a point to the beam segment
++      public function distToBeam(param1:Number, param2:Number) : Number
++      {
++         var _loc3_:Number = endx - startx;
++         var _loc4_:Number = endy - starty;
++         var _loc5_:Number = _loc3_ * _loc3_ + _loc4_ * _loc4_;
++         var _loc6_:Number = _loc5_ > 0 ? ((param1 - startx) * _loc3_ + (param2 - starty) * _loc4_) / _loc5_ : 0;
++         _loc6_ = Math.max(0,Math.min(1,_loc6_));
++         return dist(param1,param2,startx + _loc3_ * _loc6_,starty + _loc4_ * _loc6_);
++      }
++
+       public function dist(param1:Number, param2:Number, param3:Number, param4:Number) : Number
+       {
+          var _loc5_:Number = param3 - param1;
+@@ -73,8 +85,25 @@
+             if(!doneHit)
+             {
+                emitConditionalParticles("LaserHit",endx,endy,true);
++               // MOD: a railgun beam hits everything along its whole length, not just at the end
+                for each(_loc6_ in gs.objects)
+                {
++                  if(tag == WeaponBase.RAIL)
++                  {
++                     if((_loc6_ is EnemyBase || _loc6_ is FloorProp) && distToBeam(_loc6_.basex,_loc6_.basey) < 28)
++                     {
++                        if(_loc6_ is EnemyBase)
++                        {
++                           EnemyBase(_loc6_).hitBy(this);
++                        }
++                        else
++                        {
++                           FloorProp(_loc6_).hasBeenHit(this);
++                        }
++                        hitAny = true;
++                     }
++                     continue;
++                  }
+                   if(_loc6_ is EnemyBase)
+                   {
+                      if(_loc6_.distanceToPoint(endx,endy) < 50)
