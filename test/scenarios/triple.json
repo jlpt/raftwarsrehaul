@@ -1,0 +1,4 @@
+[{"wait":9500},{"click":[560,440]},{"wait":800},{"click":[245,250]},{"wait":3000},
+ {"rh":["set","_global.saveProgress.triples",3]},{"rh":["set","_global.saveProgress.megas",2]},{"rh":["set","_global.progress.level",3]},
+ {"click":[550,380]},{"wait":3500},{"click":[320,240]},{"wait":6000},
+ {"click":[243,45]},{"wait":200},{"move":[360,215]},{"wait":400},{"shot":"01_aim"},{"rh":["get","game.ammoChosen"],"print":true},{"click":[360,215]},{"wait":300},{"rh":["state"],"print":true},{"wait":300},{"shot":"02"},{"wait":300},{"shot":"03"},{"wait":300},{"shot":"04"},{"wait":300},{"shot":"05"},{"wait":300},{"shot":"06"},{"wait":300},{"shot":"07"},{"rh":["state"],"print":true}]

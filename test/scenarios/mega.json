@@ -1,0 +1,5 @@
+[{"wait":9500},{"click":[560,440]},{"wait":800},{"click":[245,250]},{"wait":3000},
+ {"rh":["set","_global.saveProgress.megas",2]},{"rh":["set","_global.progress.level",1]},
+ {"click":[550,380]},{"wait":3500},{"click":[320,240]},{"wait":7000},
+ {"rh":["set","game.rhAIErrMul",4]},
+ {"rh":["call","rhDbgFire",[5,0]],"print":true},{"wait":1500},{"shot":"01"},{"wait":500},{"shot":"02"},{"wait":200},{"shot":"03"},{"wait":200},{"shot":"04"},{"wait":200},{"shot":"05"},{"wait":400},{"shot":"06"},{"rh":["state"],"print":true},{"wait":1500},{"shot":"07"},{"wait":1500},{"shot":"08"},{"rh":["state"],"print":true}]

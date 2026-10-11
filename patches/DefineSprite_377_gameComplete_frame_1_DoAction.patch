@@ -1,0 +1,31 @@
+--- a/scripts/DefineSprite_377_gameComplete/frame_1/DoAction.as
++++ b/scripts/DefineSprite_377_gameComplete/frame_1/DoAction.as
+@@ -3,10 +3,6 @@
+ {
+    this._parent._parent.gotoAndStop("begin");
+ };
+-this.submit.onRelease = function()
+-{
+-   this._parent.gotoAndStop(2);
+-};
+ var aantTries = _global.progress.tries;
+ if(aantTries < 11)
+ {
+@@ -18,7 +14,15 @@
+    triesScore = 0;
+ }
+ this.triesScore = triesScore;
+-var totalPoints = _global.progress.points + triesScore;
++// Rehauled: difficulty multiplier + local high score table
++var scoreMul = _root.rhD().scoreMul;
++var totalPoints = Math.round((_global.progress.points + triesScore) * scoreMul);
+ this.score.text = "score: " + _global.progress.points;
+ this.tries.text = "nr of tries: " + _global.progress.tries + "-> " + triesScore + " bonus points";
+-this.total.text = "total score: " + totalPoints;
++this.total.text = "total score: " + totalPoints + (scoreMul != 1 ? "  (x" + scoreMul + " " + _root.rhD().name + ")" : "");
++this.submit.totalPoints = totalPoints;
++this.submit.onRelease = function()
++{
++   this._visible = false;
++   _root.rhEnterScore(this.totalPoints,"CAMPAIGN " + _root.rhD().name);
++};

@@ -1,0 +1,5 @@
+[{"wait":9500},{"click":[530,300]},{"wait":800},{"click":[245,250]},{"wait":2500},{"click":[595,455]},{"wait":4000},{"click":[320,240]},{"wait":4500},{"click":[55,452]},{"wait":3000},
+ {"rh":["set","game.rhAIErrMul",0]},{"key":"F"},
+ {"move":[600,100]},{"click":[600,100]},{"wait":9000},{"shot":"t1"},{"rh":["state"],"print":true},
+ {"move":[600,100]},{"click":[600,100]},{"wait":9000},{"shot":"t2"},{"rh":["state"],"print":true},
+ {"move":[600,100]},{"click":[600,100]},{"wait":9000},{"shot":"t3"},{"rh":["state"],"print":true}]

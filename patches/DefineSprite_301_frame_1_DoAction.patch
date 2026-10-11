@@ -1,0 +1,8 @@
+--- a/scripts/DefineSprite_301/frame_1/DoAction.as
++++ b/scripts/DefineSprite_301/frame_1/DoAction.as
+@@ -13,5 +13,4 @@
+ };
+ this.onRelease = function()
+ {
+-   getURL("http://www.bubblebox.com/", "_blank");
+ };

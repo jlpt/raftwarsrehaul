@@ -1,0 +1,16 @@
+(function () {
+  const msg = document.getElementById('msg');
+  if (!window.RufflePlayer || !window.RufflePlayer.newest) {
+    msg.textContent = 'Could not load the Ruffle Flash emulator (needs an internet connection the first time).';
+    return;
+  }
+  const bin = atob(SWF_B64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const player = window.RufflePlayer.newest().createPlayer();
+  document.getElementById('game').appendChild(player);
+  player.load({ data: bytes, swfFileName: 'raftwars_rehauled.swf' }).catch(e => { msg.textContent = 'Failed to start: ' + e; });
+})();
+</script>
+</body>
+</html>

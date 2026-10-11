@@ -1,0 +1,8 @@
+--- a/scripts/frame_5/DoAction.as
++++ b/scripts/frame_5/DoAction.as
+@@ -8,3 +8,5 @@
+ }
+ _global.quiet = false;
+ _global.countTurns = 0;
++
++rhInit();

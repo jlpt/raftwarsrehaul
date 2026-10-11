@@ -1,0 +1,1 @@
+[{"wait":9500},{"shot":"01_menu"},{"click":[80,441]},{"wait":800},{"shot":"02_news"},{"click":[320,380]},{"wait":500},{"shot":"03_closed"}]

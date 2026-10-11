@@ -1,0 +1,8 @@
+[{"wait":9500},{"click":[560,440]},{"wait":800},{"click":[245,250]},{"wait":3000},
+ {"rh":["set","_global.saveProgress.megas",3]},{"rh":["set","_global.progress.level",1]},
+ {"click":[550,380]},{"wait":3500},{"click":[320,240]},{"wait":7000},
+ {"rh":["call","rhDbgFire",[5,0]],"print":true},{"wait":9000},{"shot":"01_win"},{"click":[320,240]},{"wait":3500},{"shot":"02_shop_w2"},
+ {"rh":["get","_global.RH.wave"],"print":true},{"rh":["get","_global.progress.level"],"print":true},{"rh":["get","_global.saveProgress.money"],"print":true},
+ {"click":[550,380]},{"wait":3500},{"shot":"03_w2_begin"},{"click":[320,240]},{"wait":7000},{"shot":"04_w2"},
+ {"rh":["set","game.rhAIErrMul",0]},{"key":"F"},
+ {"move":[600,90]},{"click":[600,90]},{"wait":9000},{"move":[600,90]},{"click":[600,90]},{"wait":9000},{"move":[600,90]},{"click":[600,90]},{"wait":9000},{"move":[600,90]},{"click":[600,90]},{"wait":9000},{"shot":"05_lost"},{"rh":["state"],"print":true},{"click":[320,240]},{"wait":3500},{"shot":"06_shop_after_loss"},{"rh":["get","_global.progress.lives"],"print":true}]

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Raft Wars: Rehauled</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #1a2a3a; color: #fff; font: 14px/1.4 system-ui, sans-serif; }
+  .wrap { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px; box-sizing: border-box; }
+  #game { width: min(960px, 100%); aspect-ratio: 4 / 3; background: #000; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,.5); }
+  #game ruffle-player { width: 100%; height: 100%; }
+  .keys { opacity: .75; font-size: 13px; text-align: center; }
+  .err { color: #ffb4a8; }
+</style>
+<script>
+  window.RufflePlayer = window.RufflePlayer || {};
+  window.RufflePlayer.config = { autoplay: "on", unmuteOverlay: "visible", splashScreen: false, letterbox: "on", allowScriptAccess: false };
+</script>
+<script src="https://unpkg.com/@ruffle-rs/ruffle@0.7.1/ruffle.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <div id="game"></div>
+  <div class="keys">Raft Wars: Rehauled &mdash; mouse to aim &amp; fire &middot; 1-5 ammo &middot; F fast-forward &middot; M music. Progress auto-saves in this browser.</div>
+  <div class="keys err" id="msg"></div>
+</div>
+<script>

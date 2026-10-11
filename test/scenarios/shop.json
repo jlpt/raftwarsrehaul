@@ -1,0 +1,1 @@
+[{"wait":9500},{"click":[560,440]},{"wait":800},{"click":[245,250]},{"wait":3000},{"rh":["set","_global.saveProgress.money",9000]},{"rh":["call","initTussenscherm",[true]]},{"wait":300},{"shot":"01"},{"move":[540,220]},{"wait":500},{"shot":"02_hover_raft"}]

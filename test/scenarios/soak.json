@@ -1,0 +1,1 @@
+[{"wait":9500},{"click":[530,300]},{"wait":800},{"click":[245,250]},{"wait":1500},{"key":"F"},{"autoplay":{"maxMs":900000,"shots":true}},{"wait":3000},{"shot":"zz_end"}]

@@ -1,0 +1,7 @@
+# Downloaded originals, tools and build output (copyrighted / third-party; never commit)
+work/
+dist/
+test/out/
+test/ruffle/
+node_modules/
+*.swf

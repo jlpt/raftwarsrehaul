@@ -1,0 +1,682 @@
+--- a/scripts/frame_4/DoAction.as
++++ b/scripts/frame_4/DoAction.as
+@@ -435,6 +435,7 @@
+    game.raftMcs = [];
+    game.raftStartPos = 80;
+    game.seaLevel = game.sH - 90;
++   rhLevelStart();
+    initAchtergrond();
+    var _loc32_ = sky.attachMovie("mcSky","mcSky",0);
+    var _loc10_ = sky.attachMovie("clouds","clouds",1);
+@@ -582,10 +583,10 @@
+    game.sea = {width:game.mapWidth + 100,points:48};
+    seaContainer._x = -30;
+    seaContainer._y = game.seaLevel;
+-   makeWave(seaContainer,game.sH,5606534,4,0.1,game.sea.points,game.sea.width);
++   makeWave(seaContainer,game.sH,rhSeaColor(5606534),4,0.1,game.sea.points,game.sea.width);
+    seaContainer2._x = -30;
+    seaContainer2._y = game.seaLevel + 30;
+-   makeWave(seaContainer2,game.sH,6132622,4,0.1,game.sea.points - 4,game.sea.width);
++   makeWave(seaContainer2,game.sH,rhSeaColor(6132622),4,0.1,game.sea.points - 4,game.sea.width);
+    seaInt = setInterval(simWave,50,seaContainer);
+    seaInt2 = setInterval(simWave,50,seaContainer2);
+    particleInt = setInterval(moveParticleObjects,40);
+@@ -601,7 +602,7 @@
+    displayHealthBars(false);
+    main.onEnterFrame = function()
+    {
+-      mainLoop();
++      rhFrame();
+    };
+    if(_global.twoPlayer != true)
+    {
+@@ -612,6 +613,7 @@
+       game.userReady = true;
+       game.beginTimer = getTimer();
+    }
++   rhBattleDecorate();
+    draw();
+    simWave();
+ };
+@@ -794,6 +796,7 @@
+    while(_loc2_ < game.cannonBalls.length)
+    {
+       _loc1_ = game.cannonBalls[_loc2_];
++      _loc1_.vx += game.rhWind;
+       initObject(_loc1_);
+       checkStageBounds(_loc1_);
+       checkTerrainCollisions(_loc1_);
+@@ -1145,6 +1148,10 @@
+    else if(game.winner == 2)
+    {
+       _loc3_.gotoAndStop("lose");
++      if(rhIsEndless())
++      {
++         rhBanner(_global.progress.lives > 0 ? "LIVES LEFT: " + (_global.progress.lives - 1) : "GAME OVER",300,16733440,26,140);
++      }
+    }
+    else
+    {
+@@ -1163,16 +1170,28 @@
+       }
+       _loc3_.time_used = "time used: " + _loc8_ + " secs " + "-> " + _loc6_ + " bonus credits";
+       _loc3_.fired = "shots fired: " + _loc9_ + " (par " + level.par + ")" + " -> " + _loc7_ + " credits";
+-      _loc4_ = _loc7_ + _loc6_ + 500;
++      _loc4_ = _loc7_ + _loc6_ + 500 + rhNum(game.rhBonus);
+       if(_loc4_ == null || _loc4_ == undefined)
+       {
+          _loc4_ = 0;
+       }
+       _loc3_.score = "credits earned: " + _loc4_;
++      if(rhNum(game.rhBonus) > 0)
++      {
++         _loc3_.fired = _loc3_.fired + "   + " + game.rhBonus + " trick-shot bonus";
++      }
+       _global.progress.points += _loc4_;
+       _global.saveProgress.money += _loc4_;
+       _loc3_.totalScore = "total score: " + _global.progress.points;
+-      _global.progress.level++;
++      if(rhIsEndless())
++      {
++         _global.RH.wave++;
++         _global.progress.level = rhRandomLevel();
++      }
++      else
++      {
++         _global.progress.level++;
++      }
+       if(_global.progress.level == null || _global.progress.level == undefined)
+       {
+          _global.progress.level = 1;
+@@ -1281,11 +1300,11 @@
+    main.removeMovieClip();
+    root.mask.removeMovieClip();
+    Mouse.removeListener(_global.mouseListener);
++   rhCleanupBattle();
+    root.gotoAndStop("begin");
+ };
+ exitBattle = function()
+ {
+-   trace("CALL EXITBATTLE");
+    if(_global.twoPlayer != true)
+    {
+       if(game.winner != 1)
+@@ -1294,9 +1313,12 @@
+       }
+       _global.saveProgress.rockets = level.player1.rockets;
+       _global.saveProgress.grenades = level.player1.grenades;
++      _global.saveProgress.triples = level.player1.triples;
++      _global.saveProgress.megas = level.player1.megas;
+    }
+    stopSound();
+    clearIntervals();
++   rhCleanupBattle();
+    sky.removeMovieClip();
+    hud.removeMovieClip();
+    main.removeMovieClip();
+@@ -1306,8 +1328,23 @@
+    {
+       root.gotoAndStop("overview2p");
+    }
++   else if(rhIsEndless())
++   {
++      if(_global.progress.lives < 0)
++      {
++         rhEndlessGameOver();
++         playLoop("menuloop");
++         root.gotoAndStop("begin");
++      }
++      else
++      {
++         rhSaveGame();
++         root.gotoAndStop("overview");
++      }
++   }
+    else if(_global.progress.level == 11 && game.winner == 1)
+    {
++      rhSaveGame();
+       deleteGameMcs();
+       playLoop("menuloop");
+       root.gotoAndStop("endtro");
+@@ -1315,15 +1352,18 @@
+    else if(_global.progress.level > 11 || _global.callExit == true)
+    {
+       _global.callExit = false;
++      rhClearSave();
+       playLoop("menuloop");
+       root.gotoAndStop("gamecomplete");
+    }
+    else if(_global.progress.level == 11)
+    {
++      rhSaveGame();
+       start();
+    }
+    else
+    {
++      rhSaveGame();
+       root.gotoAndStop("overview");
+    }
+ };
+@@ -1354,11 +1394,13 @@
+ };
+ setDamage = function(obj, damage)
+ {
++   damage *= rhDamageMul(obj);
+    obj.hitpoints += damage * 2;
+    if(obj.hitpoints > 100)
+    {
+       obj.hitpoints = 100;
+    }
++   rhAfterDamage(obj);
+ };
+ draw = function()
+ {
+@@ -2150,7 +2192,7 @@
+    var _loc2_ = hud.attachMovie("mcBeginMessage","mcBeginMessage",hud.getNextHighestDepth());
+    _loc2_._y = 20;
+    _loc2_._x = game.sW / 2;
+-   _loc2_.levelnr = "level " + currentLevel;
++   _loc2_.levelnr = rhIsEndless() ? "wave " + _global.RH.wave : "level " + currentLevel;
+    _loc2_.par = "par: " + level.par + " shots";
+    _loc2_.onEnterFrame = function()
+    {
+@@ -2163,136 +2205,16 @@
+ };
+ attachSnowball = function(loopMc, ai, optie)
+ {
+-   var _loc3_;
+-   var _loc8_;
+-   var _loc9_;
+-   var _loc6_;
+-   var _loc20_ = false;
+-   if(ai == true)
+-   {
+-      if(game.ammoChosen == "explosiefProjectiel" && level.opponent != "savage")
+-      {
+-         _loc3_ = "mcTurtle";
+-      }
+-      else
+-      {
+-         _loc3_ = "ammo_" + level.opponent;
+-      }
+-      if(game.ammoChosen == "explosiefProjectiel")
+-      {
+-         _loc20_ = true;
+-      }
+-      _loc8_ = 0.99;
+-      _loc9_ = 0.88;
+-      _loc6_ = 0.8;
+-      if(level.opponent == "savage" || level.opponent == "chinees" || level.opponent == "viking")
+-      {
+-         speelSimpelSFX("launch_arrow");
+-      }
+-      else
+-      {
+-         speelSimpelSFX("snowball");
+-      }
+-   }
+-   else if(game.ammoChosen == "snowball")
+-   {
+-      _loc3_ = "mcSnowball";
+-      _loc8_ = 0.995;
+-      _loc9_ = 1.1;
+-      _loc6_ = 0.8;
+-      speelSimpelSFX("snowball");
+-   }
+-   else if(game.ammoChosen == "grenade")
+-   {
+-      _loc20_ = true;
+-      _loc3_ = "mcGrenade";
+-      _loc8_ = 0.994;
+-      _loc9_ = 1.2;
+-      _loc6_ = 0.7;
+-      speelSimpelSFX("grenade");
+-   }
+-   else if(game.ammoChosen == "rocket")
+-   {
+-      _loc20_ = true;
+-      _loc3_ = "mcRocket";
+-      _loc8_ = 0.995;
+-      _loc9_ = 0.9;
+-      _loc6_ = 0.8;
+-      speelSimpelSFX("rocket");
+-   }
+-   var _loc14_;
+-   if(ai == true)
+-   {
+-      _loc14_ = _global.oppCannonRotation;
+-   }
+-   else
+-   {
+-      _loc14_ = _global.cannonRotation;
+-   }
+-   var _loc12_ = main.actionContainer.getNextHighestDepth();
+-   var _loc5_ = main.actionContainer.attachMovie(_loc3_,"ball" + _loc12_,_loc12_);
+-   var _loc0_;
+-   var _loc2_ = game.cannonBalls[0] = {f:1,m:_loc9_,r:24,b:_loc6_,rot:rot,stopTerrainHittest:false,airf:_loc8_,arrayNr:0,mc:_loc5_,sb:true,timesColl:0,idNm:_loc3_,timesHitAnything:0,explosief:_loc20_,type:game.ammoChosen,fireScrollPos:scrollPos,aantMannetjeHits:0};
+-   if(optie != "instructions")
+-   {
+-      cannonBallToFollow = _loc2_;
+-   }
+-   _loc2_.mannetjeGeraakt = false;
+-   if(ai == true)
+-   {
+-      _loc2_.aiShot = true;
+-   }
+-   else
+-   {
+-      _loc2_.aiShot = false;
+-   }
+-   var _loc4_ = _loc14_ * 0.017453292519943295;
+-   var _loc18_ = _global.cannonPower * Math.cos(_loc4_);
+-   var _loc17_ = _global.cannonPower * Math.sin(_loc4_);
+-   var _loc13_ = _loc18_ / 3;
+-   var _loc15_ = _loc17_ / 3;
+-   _loc2_.vx = _loc13_;
+-   _loc2_.vy = _loc15_;
+-   trace("SNOWBALL " + _loc2_.vx + " " + _loc2_.vy + " " + _loc4_ + " " + loopMc + " " + _loc5_ + " nw==> " + _loc3_ + " " + _loc14_ + " " + _global.cannonPower + " " + _loc4_);
+-   _loc2_.rot = 0.3 + Math.random() * 0.7;
+-   if(_loc13_ < 0)
+-   {
+-      _loc2_.rot *= -1;
+-   }
+-   if(_loc2_.type == "grenade")
+-   {
+-      _loc2_.counter = 115;
+-      _loc2_.rot *= 40;
+-   }
+-   else if(_loc2_.type == "snowball")
+-   {
+-      _loc2_.rot *= 40;
+-      _loc2_.nrOfSnowballCollisions = 0;
+-   }
+-   else
+-   {
+-      _loc2_.rot *= 5;
+-   }
+-   if(_loc2_.vx > 0)
++   if(ai != true && game.ammoChosen == "triple")
+    {
+-      _loc2_.dir = "right";
++      rhSpawnShot(loopMc,false,optie,-5,"triple",false);
++      rhSpawnShot(loopMc,false,optie,5,"triple",false);
++      rhSpawnShot(loopMc,false,optie,0,"triple",true);
+    }
+    else
+    {
+-      _loc2_.dir = "left";
++      rhSpawnShot(loopMc,ai,optie,0,game.ammoChosen,true);
+    }
+-   hitTestBounds(loopMc.loopPoint,main);
+-   var _loc7_ = loopMc.loopPoint.xMin;
+-   var _loc11_ = loopMc.loopPoint.yMin;
+-   trace(" loopX " + _loc7_ + "  " + loopMc.loopPoint);
+-   _loc7_ += Math.cos(_loc4_) * 20;
+-   _loc11_ += Math.sin(_loc4_) * 20;
+-   _loc2_.p0 = {x:_loc7_,y:_loc11_};
+-   _loc5_._x = _loc7_;
+-   _loc5_._y = _loc11_;
+-   _loc5_._rotation = getDeg(_loc2_);
+-   initObject(_loc2_);
+-   resetNoColl();
+ };
+ resetArrayNrs = function()
+ {
+@@ -2317,14 +2239,30 @@
+ };
+ removeObject = function(obj, optie)
+ {
+-   if(obj.sb == true && optie != "instructions")
+-   {
+-      manageTurnSwitch();
+-   }
++   var _loc2_;
+    if(obj.sb == true)
+    {
++      _loc2_ = rhIndexOf(game.cannonBalls,obj);
++      if(_loc2_ < 0)
++      {
++         return undefined;
++      }
+       obj.mc.removeMovieClip();
+-      game.cannonBalls.splice(obj.arrayNr,1);
++      game.cannonBalls.splice(_loc2_,1);
++      _loc2_ = 0;
++      while(_loc2_ < game.cannonBalls.length)
++      {
++         game.cannonBalls[_loc2_].arrayNr = _loc2_;
++         _loc2_ = _loc2_ + 1;
++      }
++      if(cannonBallToFollow == obj && game.cannonBalls.length > 0)
++      {
++         cannonBallToFollow = game.cannonBalls[game.cannonBalls.length - 1];
++      }
++      if(optie != "instructions" && game.cannonBalls.length == 0)
++      {
++         manageTurnSwitch();
++      }
+    }
+    else if(obj.overig == true)
+    {
+@@ -2341,7 +2279,7 @@
+ selectBall = function(nr)
+ {
+    var _loc1_ = 1;
+-   while(_loc1_ < 4)
++   while(_loc1_ < 6)
+    {
+       cannon["selectBall" + _loc1_].selectedBg._visible = false;
+       _loc1_ = _loc1_ + 1;
+@@ -2427,6 +2365,7 @@
+       game.dontShoot = false;
+       hud.mcKeu._visible = true;
+    }
++   rhDrawPreview();
+ };
+ exitInstructions = function()
+ {
+@@ -2569,6 +2508,10 @@
+                _loc6_ = false;
+             }
+          }
++         if(rhOverHud(_root._xmouse,_root._ymouse))
++         {
++            _loc6_ = false;
++         }
+          if(_loc6_ == true)
+          {
+             vuurSchot();
+@@ -2583,6 +2526,7 @@
+ };
+ vuurSchot = function(optie)
+ {
++   rhClearPreview();
+    var _loc3_ = game.fire.schietMannetje;
+    var _loc2_ = game.fire.schietMannetje.mc.bazooka;
+    var _loc1_ = game.fire.rockNr;
+@@ -2597,6 +2541,14 @@
+       {
+          level["player" + _loc1_].rockets--;
+       }
++      else if(game.ballSelected == 4)
++      {
++         level["player" + _loc1_].triples--;
++      }
++      else if(game.ballSelected == 5)
++      {
++         level["player" + _loc1_].megas--;
++      }
+       game.currentShot = _loc1_;
+       cannonSequence = false;
+    }
+@@ -2915,6 +2867,8 @@
+    _loc4_.penguin = _loc5_.mc;
+    _loc4_.penguinObj = _loc5_;
+    game.activeSupersoaker = _loc4_;
++   rhNewTurnWind();
++   rhSetupAmmoSlots(rockNr);
+    attachInitKeu(_loc6_);
+ };
+ checkSep = function(obj)
+@@ -3503,6 +3457,8 @@
+ startAIshot = function()
+ {
+    game.AIshotsFired++;
++   rhNewTurnWind();
++   game.rhAITarget = rhAIChooseTarget();
+    trace(game.AIshotsFired + "  shotsfires");
+    displayHealthBars(false);
+    var _loc2_;
+@@ -3767,6 +3723,7 @@
+ };
+ manageTurnSwitch = function()
+ {
++   rhClearPreview();
+    game.extraScroll = -40 + random(80);
+    callTurnScroll = true;
+    resetActivePenguins();
+@@ -4329,8 +4286,9 @@
+    if(lastExplosionTime - _loc24_ > 200)
+    {
+       speelSimpelSFX("explosion");
+-      shake = 10;
++      shake = obj.mega == true ? 22 : 10;
+       attachFlits();
++      rhShockwave(obj.p1.x,obj.p1.y,obj.mega == true ? 320 : 170,obj.mega == true ? 16755200 : 16777215);
+       _loc8_ = obj.p1.x;
+       _loc7_ = obj.p1.y;
+       _loc17_ = obj.vx;
+@@ -4338,6 +4296,10 @@
+       _loc25_ = obj.r;
+       _loc6_ = actionContainer.getNextHighestDepth();
+       _loc23_ = actionContainer.attachMovie("mcExpCloud","cloud" + _loc6_,_loc6_);
++      if(obj.mega == true)
++      {
++         _loc23_._xscale = _loc23_._yscale = 200;
++      }
+       _loc10_ = {x:_loc8_,y:_loc7_ - 10,vx:0,vy:-3,mc:_loc23_,mass:0.01};
+       game.explosionObjects.push(_loc10_);
+       _loc3_ = 0;
+@@ -4801,49 +4763,11 @@
+       disableCredits();
+       _loc5_.play.onRelease = function()
+       {
+-         delete this.onRelease;
+-         _global.progress = {level:1,lives:5,points:0,tries:0};
+-         _global.inGame = true;
+-         _global.twoPlayer = false;
+-         _global.doeInstructions = true;
+-         _global.saveProgress.grenades = 0;
+-         _global.saveProgress.rockets = 0;
+-         _global.saveProgress.money = 0;
+-         _global.saveProgress.raftUpgrade = 1;
+-         trace(" svaed " + _global.saveProgress.money);
+-         var _loc4_ = _root.attachMovie("intro_fade","intro_fade",_root.getNextHighestDepth());
+-         _loc4_._alpha = 0;
+-         _loc4_.onEnterFrame = function()
+-         {
+-            trace(_global.saveProgress.grenades + " grenaat 2");
+-            if(this._alpha < 100)
+-            {
+-               this._alpha += 10;
+-            }
+-            else
+-            {
+-               root.gotoAndStop("startgame");
+-               root.mcControlCenter.removeMovieClip();
+-               this.removeMovieClip();
+-            }
+-         };
+-      };
+-      _loc5_.play_more_games.onRelease = function()
+-      {
+-         var _loc1_;
+-         if(Math.random() > 0.8)
+-         {
+-            _loc1_ = "http://www.monsterbox.com";
+-         }
+-         else
+-         {
+-            _loc1_ = "http://www.bubblebox.com";
+-         }
+-         getURL(_loc1_,"_blank");
++         rhShowDifficulty("campaign");
+       };
+-      _loc5_.addgames.onRelease = function()
++      _loc5_.highscores.onRelease = function()
+       {
+-         getURL("http://www.bubblebox.com/freecontent.htm", "_blank");
++         rhShowScores();
+       };
+       _loc5_.tellafriend.onRelease = function()
+       {
+@@ -4855,23 +4779,7 @@
+          disableTellafriend();
+          enableCredits();
+       };
+-      _loc5_.play_more_games.onRelease = function()
+-      {
+-         disableTellafriend();
+-         disableCredits();
+-         getURL("http://www.bubblebox.com", "_blank");
+-      };
+-      _loc5_.add_to_site.onRelease = function()
+-      {
+-         getURL("http://www.bubblebox.com/freecontent.htm", "_blank");
+-      };
+-      _loc5_.highscores.onRelease = function()
+-      {
+-         disableTellafriend();
+-         disableCredits();
+-         var _loc2_ = "http://www.bubblebox.com/showscores.php?game_id=" + _global.game_id + "&cache=" + random(100);
+-         getURL(_loc2_,"_blank");
+-      };
++      rhDecorateMenu(_loc5_);
+    }
+    else if(step == 2)
+    {
+@@ -4984,9 +4892,15 @@
+    else if(obj.p1.y > game.raftLevel + obj.r + 30)
+    {
+       attachSplash(obj,6,true);
++      if(obj.mega == true)
++      {
++         createExplosion(obj);
++         explodeCollisions(obj);
++      }
+       if(obj.penguin == true)
+       {
+          speelSimpelSFX("splash_large");
++         rhOnSplash(obj);
+          if(obj.deceased != true)
+          {
+             if(obj.opponent == true)
+@@ -5155,6 +5069,10 @@
+       {
+          _loc7_ = 350;
+       }
++      if(obj.mega == true)
++      {
++         _loc7_ = 470;
++      }
+       if(_loc5_ < _loc7_)
+       {
+          _loc1_ = {};
+@@ -5187,6 +5105,11 @@
+             _loc8_ *= 0.8;
+             _loc4_ *= 0.8;
+          }
++         if(obj.mega == true)
++         {
++            _loc8_ *= 1.25;
++            _loc4_ *= 1.25;
++         }
+          else if(obj.type == "rocket")
+          {
+             _loc8_ *= 0.65;
+@@ -5225,6 +5148,10 @@
+             {
+                _loc6_ *= 2;
+             }
++            if(obj.mega == true)
++            {
++               _loc6_ *= 1.3;
++            }
+             _loc6_ *= 1.1;
+          }
+          else
+@@ -5386,7 +5313,7 @@
+    var _loc10_;
+    var _loc8_;
+    var _loc3_;
+-   if(projectiel.aantMannetjeHits < 3 && negerObj.geraakt != true)
++   if(projectiel.aantMannetjeHits < 3 && negerObj.geraakt != true && rhIndexOf(projectiel.rhHit,negerObj) < 0)
+    {
+       if(level.ouders == true)
+       {
+@@ -5427,8 +5354,8 @@
+          if(_loc5_ == true)
+          {
+             projectiel.mannetjeGeraakt = true;
+-            negerObj.geraakt = true;
+-            if(projectiel.type == "rocket" || projectiel.type == "explosiefProjectiel")
++            projectiel.rhHit.push(negerObj);
++            if(projectiel.type == "rocket" || projectiel.type == "explosiefProjectiel" || projectiel.mega == true)
+             {
+                createExplosion(projectiel);
+                explodeCollisions(projectiel);
+@@ -5523,6 +5450,11 @@
+                   _loc3_ *= 0.09;
+                }
+             }
++            if(_loc4_ == true && negerObj.opponent == true && projectiel.aiShot != true)
++            {
++               _loc3_ *= 1.5;
++               rhOnHeadshot(negerObj);
++            }
+             setDamage(negerObj,_loc3_);
+             if(_loc3_ > minCollAnim)
+             {
+@@ -5537,7 +5469,7 @@
+                trace("attach geen ster");
+             }
+             projectiel.rot = (Math.abs(projectiel.vx) + Math.abs(projectiel.vy)) / 2;
+-            if(projectiel.type == "rocket" || projectiel.type == "explosiefProjectiel")
++            if(projectiel.type == "rocket" || projectiel.type == "explosiefProjectiel" || projectiel.mega == true)
+             {
+                removeObject(projectiel);
+             }
+@@ -5929,6 +5861,7 @@
+    _global.saveProgress.money -= _loc2_;
+    trace(" upgrade " + upgradeID + " " + _loc2_);
+    initTussenscherm(true);
++   rhSaveGame();
+ };
+ checkCost = function(upgradeID)
+ {
+@@ -6080,7 +6013,7 @@
+    _loc3_.comingup.rafts.gotoAndStop(_loc4_);
+    updateHud();
+    var _loc6_ = checkCost("rocket");
+-   if(_global.saveProgress.rockets >= 2)
++   if(_global.saveProgress.rockets >= 5)
+    {
+       _loc6_ = false;
+    }
+@@ -6096,7 +6029,7 @@
+       _loc3_.rocket.knop.cost.text = "cost: " + getCost("rocket");
+    }
+    _loc6_ = checkCost("grenade");
+-   if(_global.saveProgress.grenades >= 2)
++   if(_global.saveProgress.grenades >= 5)
+    {
+       _loc6_ = false;
+    }
+@@ -6129,18 +6062,21 @@
+       delete this.onRelease;
+       initYesNo(this._parent);
+    };
++   rhShopExtras();
+ };
+ initYesNo = function(mc)
+ {
+    mc.gotoAndStop(2);
+-   trace(mc + " " + mc.yes);
+    mc.yes.onRelease = function()
+    {
+-      var _loc2_ = hud.attachMovie("mcHS","mcHS",0);
+-      hud.tussenscherm.removeMovieClip();
+-      _loc2_._x = 320;
+-      _loc2_._y = 380;
+-      _global.startHighscores(_loc2_,_global.progress.points);
++      var _loc2_ = rhRunScore();
++      var _loc3_ = rhRunLabel();
++      rhClearSave();
++      _global.inGame = false;
++      rhEnterScore(_loc2_,_loc3_,function()
++      {
++         exitGame();
++      });
+    };
+    mc.no.onRelease = function()
+    {

@@ -1,0 +1,6 @@
+[{"wait":9500},{"click":[560,440]},{"wait":800},{"click":[245,250]},{"wait":3000},
+ {"rh":["set","_global.progress.lives",0]},
+ {"click":[550,380]},{"wait":3500},{"click":[320,240]},{"wait":7000},
+ {"rh":["set","game.rhAIErrMul",0]},{"key":"F"},
+ {"move":[600,90]},{"click":[600,90]},{"wait":9000},{"move":[600,90]},{"click":[600,90]},{"wait":9000},{"move":[600,90]},{"click":[600,90]},{"wait":9000},{"move":[600,90]},{"click":[600,90]},{"wait":9000},{"shot":"01_lost"},{"click":[320,240]},{"wait":3000},{"shot":"02_menu_score"},
+ {"key":"Control+a"},{"type":"CLAUDE"},{"wait":300},{"shot":"03_typed"},{"click":[320,325]},{"wait":800},{"shot":"04_table"},{"click":[320,385]},{"wait":800},{"shot":"05_menu"},{"rh":["call","rhHasSave",[]],"print":true}]

@@ -1,0 +1,6 @@
+[{"wait":9500},{"click":[530,300]},{"wait":800},{"click":[245,250]},{"wait":2500},{"click":[595,455]},{"wait":4000},{"click":[320,240]},{"wait":3000},{"shot":"00_instr1"},{"wait":5000},{"shot":"00_instr2"},{"wait":5000},{"shot":"00_instr3"},{"key":"M"},{"wait":500},{"key":"M"},{"wait":3000},{"shot":"00_after_instr"},
+ {"rh":["set","_global.progress.level",4]},{"rh":["call","exitBattle",[]]},{"wait":2500},{"click":[550,380]},{"wait":3500},{"click":[320,240]},{"wait":2500},{"shot":"L4"},
+ {"rh":["set","_global.progress.level",6]},{"rh":["call","exitBattle",[]]},{"wait":2500},{"click":[550,380]},{"wait":3500},{"click":[320,240]},{"wait":2500},{"shot":"L6"},
+ {"rh":["set","_global.progress.level",7]},{"rh":["call","exitBattle",[]]},{"wait":2500},{"click":[550,380]},{"wait":3500},{"click":[320,240]},{"wait":2500},{"shot":"L7"},
+ {"rh":["set","_global.progress.level",9]},{"rh":["call","exitBattle",[]]},{"wait":2500},{"click":[550,380]},{"wait":3500},{"click":[320,240]},{"wait":2500},{"shot":"L9"},
+ {"rh":["set","_global.progress.level",10]},{"rh":["call","exitBattle",[]]},{"wait":2500},{"click":[550,380]},{"wait":3500},{"click":[320,240]},{"wait":7000},{"shot":"L10"}]
