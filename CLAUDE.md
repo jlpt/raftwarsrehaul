@@ -113,6 +113,10 @@ Verified pitfalls:
 
 ## Testing on Linux
 
+Headless machines (no Xephyr, no `$DISPLAY`): the smoke test starts `Xvfb :99` instead, and `vshot.sh`
+uses ImageMagick `import` when `xwd` is missing. Ruffle needs `libxkbcommon-x11-0` and Mesa (`mesa-vulkan-drivers`,
+`libegl1`); on Ubuntu, `apt-get install` them if Ruffle panics at startup.
+
 `modtools/smoke_test.sh [SWF]` does all of the following automatically. It defaults to the debug SWF, uses a
 copied save, goes through the menus into Mission 1, walks and fires, writes `build/smoke_{menu,game}.png`,
 and fails on any ActionScript error. Run it after every code change. Manual steps:
