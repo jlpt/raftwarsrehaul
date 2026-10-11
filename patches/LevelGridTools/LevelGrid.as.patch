@@ -1,0 +1,27 @@
+--- a/LevelGridTools/LevelGrid.as
++++ b/LevelGridTools/LevelGrid.as
+@@ -35,8 +35,8 @@
+          var _loc7_:Array = null;
+          var _loc8_:Array = null;
+          var _loc9_:int = 0;
+-         var _loc2_:int = mainGameLevels.maxX(param1) - mainGameLevels.minX(param1) + 1;
+-         var _loc3_:int = mainGameLevels.maxY(param1) - mainGameLevels.minY(param1) + 1;
++         var _loc2_:int = levelMaxX(param1) - levelMinX(param1) + 1;
++         var _loc3_:int = levelMaxY(param1) - levelMinY(param1) + 1;
+          var _loc4_:int = 0;
+          while(_loc4_ < _loc3_)
+          {
+@@ -44,7 +44,7 @@
+             _loc6_ = 0;
+             while(_loc6_ < _loc2_)
+             {
+-               _loc7_ = mainGameLevels.init(param1,_loc6_ + mainGameLevels.minX(param1),_loc4_ + mainGameLevels.minY(param1));
++               _loc7_ = levelInit(param1,_loc6_ + levelMinX(param1),_loc4_ + levelMinY(param1));
+                _loc8_ = new Array();
+                _loc9_ = 0;
+                while(_loc9_ < _loc7_.length)
+@@ -136,4 +136,3 @@
+       }
+    }
+ }
+-

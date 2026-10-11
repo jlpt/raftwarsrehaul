@@ -1,0 +1,20 @@
+# The original game, its decompile and anything built from it are copyrighted: never commit them.
+# (This repository is public.) Mod changes live in patches/; mod_src/ is rebuilt from them.
+original/
+decompiled/
+mod_src/
+reference/
+build/
+windows/
+*.swf
+*.exe
+modtools/levels.json
+modtools/extra_missions.as
+# Third-party tools (downloaded or copied in locally)
+tools/
+winbuild/ruffle/
+winbuild/toolchain/
+# chat-upload helper output
+START_HERE.md
+robokill-for-claude.zip
+__pycache__/

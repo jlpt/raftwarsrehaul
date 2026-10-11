@@ -1,0 +1,102 @@
+--- a/GameScene/GameSceneStack.as
++++ b/GameScene/GameSceneStack.as
+@@ -8,6 +8,8 @@
+    import flash.display.Bitmap;
+    import flash.display.InteractiveObject;
+    import flash.display.Sprite;
++   import flash.display.StageScaleMode;
++   import flash.events.Event;
+    import flash.utils.getTimer;
+    
+    public class GameSceneStack
+@@ -17,6 +19,20 @@
+       
+       public static var currentStack:GameSceneStack;
+       
++      // MOD: the game logic runs in fixed 10 ms ticks (below). The screen is redrawn at
++      // TARGET_FPS and every object is drawn between its last two tick positions, so motion is
++      // smooth at high refresh rates without changing game speed. Ruffle's --frame-rate overrides it.
++      public static const TARGET_FPS:Number = 240;
++      
++      public static var interpolate:Boolean = true;
++      
++      // Bilinear-filter sprites while they move, so upscaled (fullscreen) sprites glide instead of
++      // shimmering between screen pixels. Static sprites (floor, walls) are left as the game set them.
++      public static var smoothMovingSprites:Boolean = true;
++      
++      // Number of logic ticks run so far; GameObject/Particle use it to know if their positions are fresh.
++      public static var logicTick:int = 0;
++      
+       public var lastTicks:int;
+       
+       public var fadeSprite:Bitmap;
+@@ -36,6 +52,8 @@
+       public var elapsedTicks:int;
+       
+       public var mainSprite:Sprite;
++      
++      private var frameHooked:Boolean = false;
+       
+       public function GameSceneStack()
+       {
+@@ -44,6 +62,42 @@
+       }
+       
+       public function update() : void
++      {
++         // MOD: the bundled Miniclip code sets NO_SCALE + TOP_LEFT, which pins the game to the top-left
++         // 800x600 of a fullscreen or enlarged window. Keep it scaled to fit, centred.
++         if(mainSprite.stage && mainSprite.stage.scaleMode != StageScaleMode.SHOW_ALL)
++         {
++            mainSprite.stage.scaleMode = StageScaleMode.SHOW_ALL;
++            mainSprite.stage.align = "";
++         }
++         if(!frameHooked && mainSprite.stage)
++         {
++            frameHooked = true;
++            mainSprite.stage.frameRate = TARGET_FPS;
++            mainSprite.addEventListener(Event.ENTER_FRAME,onEnterFrame);
++         }
++         updateTicks();
++         if(interpolate)
++         {
++            renderInterpolated(elapsedTicks / 10);
++         }
++      }
++      
++      private function onEnterFrame(param1:Event) : void
++      {
++         update();
++      }
++      
++      public function renderInterpolated(param1:Number) : void
++      {
++         var _loc2_:GameScene = null;
++         for each(_loc2_ in stack)
++         {
++            _loc2_.renderInterpolated(param1);
++         }
++      }
++      
++      private function updateTicks() : void
+       {
+          var _loc4_:Boolean = false;
+          var _loc5_:int = 0;
+@@ -82,7 +136,8 @@
+             {
+                mainSprite.stage.focus = mainSprite;
+             }
+-            mainSprite.focusRect = null;
++            // MOD: false instead of null, so Ruffle doesn't draw a yellow focus frame around the game
++            mainSprite.focusRect = false;
+             mainSprite.stage.stageFocusRect = false;
+          }
+          var _loc1_:int = getTimer();
+@@ -98,6 +153,7 @@
+          while(_loc3_ < _loc2_)
+          {
+             _loc4_ = _loc3_ == _loc2_ - 1;
++            ++logicTick;
+             _loc5_ = getTimer();
+             _loc6_ = GameScene(stack[stack.length - 1]);
+             if(!fading || fadeTicks > 60 + extraDelay)

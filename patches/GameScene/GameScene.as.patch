@@ -1,0 +1,28 @@
+--- a/GameScene/GameScene.as
++++ b/GameScene/GameScene.as
+@@ -370,6 +370,25 @@
+          }
+       }
+       
++      public function renderInterpolated(param1:Number) : void
++      {
++         var _loc2_:GameObject = null;
++         var _loc3_:GameSceneZOrder = null;
++         var _loc4_:ParticleLayer = null;
++         for each(_loc2_ in objects)
++         {
++            _loc2_.renderInterpolated(param1);
++         }
++         for each(_loc3_ in zOrders)
++         {
++            _loc3_.pl.renderInterpolated(param1);
++         }
++         for each(_loc4_ in orphanedParticleLayers)
++         {
++            _loc4_.renderInterpolated(param1);
++         }
++      }
++      
+       public function pushCamera(param1:GameSceneCamera) : void
+       {
+          var _loc2_:GameSceneCameraStack = null;

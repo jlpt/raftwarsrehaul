@@ -1,0 +1,73 @@
+--- a/Scenes/MainScene.as
++++ b/Scenes/MainScene.as
+@@ -53,6 +53,9 @@
+       public var spawnPoints:SpawnPoints = new SpawnPoints();
+       
+       public var currentEpisode:int = 0;
++
++      // MOD: missions 14-17 (episodes 13-16) are the extra missions
++      public static const FINAL_EPISODE:int = 16;
+       
+       public var messageQueue:Array = null;
+       
+@@ -846,6 +849,60 @@
+             assignDifficultyToGroup(Inertia,3,1);
+             assignDifficultyToGroup(Beserker,1);
+          }
++         if(currentEpisode >= 13)
++         {
++            doExtraEnemyDifficulty();
++         }
++      }
++
++      // MOD: odds of each tier (yellow, purple, white, rainbow) in the extra missions
++      public function extraTierWeights() : Array
++      {
++         if(currentEpisode == 13)
++         {
++            return [0.55,0.45,0,0];
++         }
++         if(currentEpisode == 14)
++         {
++            return [0.15,0.6,0.25,0];
++         }
++         if(currentEpisode == 15)
++         {
++            return [0,0.4,0.5,0.1];
++         }
++         return [0,0.1,0.5,0.4];
++      }
++
++      public function doExtraEnemyDifficulty() : void
++      {
++         var go:GameObject = null;
++         var roll:Number = NaN;
++         var i:int = 0;
++         var tier:int = 0;
++         var weights:Array = extraTierWeights();
++         for each(go in objects)
++         {
++            if(go is EnemyBase && !(go is BossBase) && !(go is ComsTowerBase) && !(go is WalkerTurretBase))
++            {
++               roll = Math.random();
++               i = 0;
++               while(i < weights.length - 1 && roll >= weights[i])
++               {
++                  roll -= weights[i];
++                  i++;
++               }
++               tier = 3 + i;
++               if(go is BeserkerBase && tier > 2)
++               {
++                  tier = 2;
++               }
++               if(go is WalkerBase && tier > 3)
++               {
++                  tier = 3;
++               }
++               EnemyBase(go).setupDifficulty(tier);
++            }
++         }
+       }
+       
+       public function assignDifficultyToGroup(param1:Class, param2:int, param3:int = -1) : void

@@ -1,0 +1,88 @@
+--- a/Particles/Particle.as
++++ b/Particles/Particle.as
+@@ -1,6 +1,7 @@
+ package Particles
+ {
+    import GameObject.GameObject;
++   import GameScene.GameSceneStack;
+    import Tools.Interpolation;
+    import flash.display.Bitmap;
+    import flash.filters.BitmapFilter;
+@@ -104,6 +105,21 @@
+       
+       public var aRotation:Number = 0;
+       
++      // MOD: render interpolation (see GameSceneStack.TARGET_FPS)
++      private var ipTick:int = -1;
++      
++      private var ipX0:Number = 0;
++      
++      private var ipY0:Number = 0;
++      
++      private var ipR0:Number = 0;
++      
++      private var ipX1:Number = 0;
++      
++      private var ipY1:Number = 0;
++      
++      private var ipR1:Number = 0;
++      
+       public function Particle()
+       {
+          super();
+@@ -208,6 +224,28 @@
+          b.rotation = Rotation;
+          b.x = x - (cosd(-Rotation) * (baseWidth * 0.5 * baseScaleY) + sind(-Rotation) * (baseHeight * 0.5 * baseScaleX)) - layer.x;
+          b.y = y - (-sind(-Rotation) * (baseWidth * 0.5 * baseScaleX) + cosd(-Rotation) * (baseHeight * 0.5 * baseScaleY)) - layer.y;
++         if(ipTick == GameSceneStack.logicTick - 1)
++         {
++            ipX0 = ipX1;
++            ipY0 = ipY1;
++            ipR0 = ipR1;
++         }
++         else
++         {
++            ipX0 = x - layer.x;
++            ipY0 = y - layer.y;
++            ipR0 = Rotation;
++         }
++         ipTick = GameSceneStack.logicTick;
++         ipX1 = x - layer.x;
++         ipY1 = y - layer.y;
++         ipR1 = Rotation;
++         if(Math.abs(ipX1 - ipX0) > 100 || Math.abs(ipY1 - ipY0) > 100)
++         {
++            ipX0 = ipX1;
++            ipY0 = ipY1;
++            ipR0 = ipR1;
++         }
+          if(CurrentLife > TotalLife || toKill)
+          {
+             if(Boolean(deathCallback))
+@@ -216,6 +254,26 @@
+             }
+             _deleted = true;
+          }
++      }
++      
++      public function renderInterpolated(param1:Number) : void
++      {
++         if(ipTick != GameSceneStack.logicTick || _deleted || !b.visible)
++         {
++            return;
++         }
++         if(ipX0 == ipX1 && ipY0 == ipY1 && ipR0 == ipR1)
++         {
++            return;
++         }
++         if(GameSceneStack.smoothMovingSprites && !b.smoothing)
++         {
++            b.smoothing = true;
++         }
++         var _loc2_:Number = ipR0 + (ipR1 - ipR0) * param1;
++         b.rotation = _loc2_;
++         b.x = ipX0 + (ipX1 - ipX0) * param1 - (cosd(-_loc2_) * (baseWidth * 0.5 * baseScaleY) + sind(-_loc2_) * (baseHeight * 0.5 * baseScaleX));
++         b.y = ipY0 + (ipY1 - ipY0) * param1 - (-sind(-_loc2_) * (baseWidth * 0.5 * baseScaleX) + cosd(-_loc2_) * (baseHeight * 0.5 * baseScaleY));
+       }
+       
+       public function tint(param1:Number, param2:Number, param3:Number) : void

@@ -1,0 +1,121 @@
+--- a/GameObject/GameObject.as
++++ b/GameObject/GameObject.as
+@@ -183,6 +183,22 @@
+       
+       private var radianConst:Number = 0.017453292519943295;
+       
++      // MOD: render interpolation. Screen position/rotation at the previous (0) and
++      // latest (1) logic tick, recorded in syncObj and blended in renderInterpolated.
++      private var ipTick:int = -1;
++      
++      private var ipX0:Number = 0;
++      
++      private var ipY0:Number = 0;
++      
++      private var ipR0:Number = 0;
++      
++      private var ipX1:Number = 0;
++      
++      private var ipY1:Number = 0;
++      
++      private var ipR1:Number = 0;
++      
+       public var basex:Number;
+       
+       public var basey:Number;
+@@ -443,6 +459,7 @@
+             lastScreenX -= gs.camX * dampenOrigin;
+             lastScreenY -= gs.camY * dampenOrigin;
+          }
++         recordInterpolation();
+          var _loc1_:Number = lastScreenX - (Math.cos(-modifiedRotation * radianConst) * int(baseWidth * baseHandleX * modifiedScaleX) + Math.sin(-modifiedRotation * radianConst) * int(baseHeight * baseHandleY * modifiedScaleY));
+          var _loc2_:Number = lastScreenY - (-Math.sin(-modifiedRotation * radianConst) * int(baseWidth * baseHandleX * modifiedScaleX) + Math.cos(-modifiedRotation * radianConst) * int(baseHeight * baseHandleY * modifiedScaleY));
+          if(!parent)
+@@ -488,6 +505,78 @@
+          if(additive)
+          {
+             obj.blendMode = BlendMode.ADD;
++         }
++      }
++      
++      private function recordInterpolation() : void
++      {
++         var _loc1_:int = GameSceneStack.logicTick;
++         if(ipTick != _loc1_)
++         {
++            if(ipTick == _loc1_ - 1 && !justCreated)
++            {
++               ipX0 = ipX1;
++               ipY0 = ipY1;
++               ipR0 = ipR1;
++            }
++            else
++            {
++               ipX0 = lastScreenX;
++               ipY0 = lastScreenY;
++               ipR0 = modifiedRotation;
++            }
++            ipTick = _loc1_;
++         }
++         ipX1 = lastScreenX;
++         ipY1 = lastScreenY;
++         ipR1 = modifiedRotation;
++         // teleports (room changes, respawns) snap instead of sliding across the screen
++         if(Math.abs(ipX1 - ipX0) > 100 || Math.abs(ipY1 - ipY0) > 100)
++         {
++            ipX0 = ipX1;
++            ipY0 = ipY1;
++            ipR0 = ipR1;
++         }
++      }
++      
++      public function renderInterpolated(param1:Number) : void
++      {
++         if(mainLayer && mainLayer.particles.length > 0)
++         {
++            mainLayer.renderInterpolated(param1);
++         }
++         if(ipTick != GameSceneStack.logicTick || _removed || disabled || obj == null || !obj.visible)
++         {
++            return;
++         }
++         var _loc2_:Number = ipR1 - ipR0;
++         if(ipX0 == ipX1 && ipY0 == ipY1 && _loc2_ == 0)
++         {
++            return;
++         }
++         if(GameSceneStack.smoothMovingSprites && obj is Bitmap && !Bitmap(obj).smoothing)
++         {
++            Bitmap(obj).smoothing = true;
++         }
++         while(_loc2_ > 180)
++         {
++            _loc2_ -= 360;
++         }
++         while(_loc2_ < -180)
++         {
++            _loc2_ += 360;
++         }
++         var _loc3_:Number = ipR0 + _loc2_ * param1;
++         var _loc4_:Number = -_loc3_ * radianConst;
++         var _loc5_:int = int(baseWidth * baseHandleX * modifiedScaleX);
++         var _loc6_:int = int(baseHeight * baseHandleY * modifiedScaleY);
++         obj.x = ipX0 + (ipX1 - ipX0) * param1 - (Math.cos(_loc4_) * _loc5_ + Math.sin(_loc4_) * _loc6_);
++         obj.y = ipY0 + (ipY1 - ipY0) * param1 - (-Math.sin(_loc4_) * _loc5_ + Math.cos(_loc4_) * _loc6_);
++         if(_loc2_ != 0)
++         {
++            obj.rotation = _loc3_;
++            // make the next syncObj write the exact tick rotation again
++            oldRotation = NaN;
+          }
+       }
+       
+@@ -875,7 +964,7 @@
+             GameObjectFilter(filters[i]).update(this);
+             i++;
+          }
+-         filters = filters.filter(function blah(param1:Object, param2:int, param3:Array):Boolean
++         filters = filters.filter(function(param1:Object, param2:int, param3:Array):Boolean
+          {
+             return !GameObjectFilter(param1).removeFilter;
+          });

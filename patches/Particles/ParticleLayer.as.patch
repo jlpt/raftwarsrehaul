@@ -1,0 +1,18 @@
+--- a/Particles/ParticleLayer.as
++++ b/Particles/ParticleLayer.as
+@@ -32,6 +32,15 @@
+          }
+       }
+       
++      public function renderInterpolated(param1:Number) : void
++      {
++         var _loc2_:Particle = null;
++         for each(_loc2_ in particles)
++         {
++            _loc2_.renderInterpolated(param1);
++         }
++      }
++      
+       public function addParticle(param1:Class) : Particle
+       {
+          var _loc2_:Particle = new Particle();

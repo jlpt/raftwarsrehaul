@@ -1,0 +1,28 @@
+--- a/Objects/CommWindow.as
++++ b/Objects/CommWindow.as
+@@ -38,9 +38,16 @@
+       public var killed:Boolean = false;
+       
+       public var endOfLevelText:String = "EXCELLENT. MISSION COMPLETE.";
++
++      // MOD: briefings for the extra missions
++      public var extraBriefings:Array = ["SCANS SHOW A SECOND FACTORY DECK BELOW US.\nIT IS TURNING OUT A NEW PURPLE CLASS OF ROBOT.\nFIND THE KEYS AND FIGHT YOUR WAY TO THE EXIT.","THE FACTORY WAS FED FROM A NEST DEEPER DOWN.\nIT IS CRAWLING WITH SWARMS. KEEP MOVING\nAND DON\'T LET THEM SURROUND YOU.","WE FOUND THEIR WEAPONS VAULT.\nWHITE CLASS UNITS ARE GUARDING IT.\nTAKE WHATEVER YOU CAN CARRY.","LAST STOP: THE CORE.\nTHE READINGS IN THERE KEEP CHANGING COLOUR.\nWHATEVER IS MAKING THEM, SHUT IT DOWN."];
+       
+       public function CommWindow(param1:GameScene, param2:int, param3:int, param4:Boolean = false)
+       {
++         if(MainScene(param1).currentEpisode >= 13)
++         {
++            displayTextOptions[MainScene(param1).currentEpisode] = extraBriefings[MainScene(param1).currentEpisode - 13];
++         }
+          displayText = displayTextOptions[MainScene(param1).currentEpisode];
+          if(param4)
+          {
+@@ -99,7 +106,7 @@
+          if(finishLevel)
+          {
+             Logging.Log("robokill","finishlevel");
+-            if(MainScene(gs).currentEpisode == 12)
++            if(MainScene(gs).currentEpisode == 12 || MainScene(gs).currentEpisode >= MainScene.FINAL_EPISODE)
+             {
+                MainScene(gs).pushScene(new End(),true);
+             }

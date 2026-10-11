@@ -1,0 +1,34 @@
+--- a/GameLevels/GameLevel.as
++++ b/GameLevels/GameLevel.as
+@@ -495,6 +495,22 @@
+          {
+             _loc15_ = new ColorTransform(1,1.2,1.6);
+          }
++         else if(MainScene(gs).currentEpisode == 13)
++         {
++            _loc15_ = new ColorTransform(1.15,0.95,1.3);
++         }
++         else if(MainScene(gs).currentEpisode == 14)
++         {
++            _loc15_ = new ColorTransform(1.05,1.2,0.9);
++         }
++         else if(MainScene(gs).currentEpisode == 15)
++         {
++            _loc15_ = new ColorTransform(1.2,1.2,1.25);
++         }
++         else if(MainScene(gs).currentEpisode == 16)
++         {
++            _loc15_ = new ColorTransform(1.3,1,1.15);
++         }
+          _loc9_ = 0;
+          while(_loc9_ < 800 / 52)
+          {
+@@ -513,7 +529,7 @@
+             _loc9_++;
+          }
+          _loc11_.bitmapData.draw(_loc12_,null,_loc15_,BlendMode.MULTIPLY);
+-         var _loc16_:Array = [0,1,2,3,4,1,0,3,4,2,5,5,5];
++         var _loc16_:Array = [0,1,2,3,4,1,0,3,4,2,5,5,5,3,4,2,5];
+          var _loc17_:Bitmap = new Bitmap(Embeds.pit[_loc16_[MainScene(gs).currentEpisode]]);
+          _loc9_ = 0;
+          while(_loc9_ < 800 / 52)

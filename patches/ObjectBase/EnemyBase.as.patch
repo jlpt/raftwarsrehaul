@@ -1,0 +1,113 @@
+--- a/ObjectBase/EnemyBase.as
++++ b/ObjectBase/EnemyBase.as
+@@ -29,13 +29,21 @@
+    import Tools.Random;
+    import flash.display.BitmapData;
+    import flash.geom.Point;
++   import flash.utils.getTimer;
+    
+    public class EnemyBase extends GameObjectBase
+    {
+       
+-      public static var levelMult:Array = [1.28,4.7,3.98,6.15,5.02,6.05,10.39,7.42,5.69,9.09,8,8,8];
+-      
+-      public static var toughnessMult:Array = [1,4,10,20];
++      public static var levelMult:Array = [1.28,4.7,3.98,6.15,5.02,6.05,10.39,7.42,5.69,9.09,8,8,8,9,10,11,12];
++
++      // MOD: tiers 4-6 (purple, white, rainbow) extend green/blue/red/yellow
++      public static const MAX_TOUGHNESS:int = 6;
++
++      public static var toughnessMult:Array = [1,4,10,20,35,55,80];
++
++      public static var toughnessHealthMult:Array = [1,1,1,2,2.75,3.5,4.5];
++
++      public static var extraTierTints:Array = [null,null,null,null,[0.55,0.75,-0.1],[0.55,0.55,0.55]];
+       
+       internal var lastDestX:int = -1;
+       
+@@ -291,6 +299,10 @@
+       
+       public function setupDifficulty(param1:int) : void
+       {
++         if(param1 > MAX_TOUGHNESS)
++         {
++            param1 = MAX_TOUGHNESS;
++         }
+          toughness = param1;
+          if(param1 > 0)
+          {
+@@ -301,11 +313,7 @@
+             }
+          }
+          tint(1,0,0);
+-         health = baseHealth + param1 * extraHealth;
+-         if(param1 == 3)
+-         {
+-            health *= 2;
+-         }
++         health = (baseHealth + param1 * extraHealth) * toughnessHealthMult[param1];
+          totalHealth = health;
+       }
+       
+@@ -686,6 +694,10 @@
+          {
+             return 0.4;
+          }
++         if(toughness >= 4)
++         {
++            return extraTierTint(0);
++         }
+          if(toughness == 0)
+          {
+             return 0;
+@@ -802,6 +814,10 @@
+          if(frozen > 0)
+          {
+             return 1;
++         }
++         if(toughness >= 4)
++         {
++            return extraTierTint(1);
+          }
+          if(toughness == 0)
+          {
+@@ -1088,6 +1104,10 @@
+          {
+             return 0.6;
+          }
++         if(toughness >= 4)
++         {
++            return extraTierTint(2);
++         }
+          if(toughness == 0)
+          {
+             return 0.79;
+@@ -1103,6 +1123,28 @@
+          return b;
+       }
+       
++      // MOD: colour-matrix coefficient for tiers 4+. Sprites are drawn red, so the
++      // matrix is a hue rotation; tier 6 spins through the whole spectrum.
++      public function extraTierTint(channel:int) : Number
++      {
++         if(toughness < MAX_TOUGHNESS)
++         {
++            return extraTierTints[toughness][channel];
++         }
++         var theta:Number = getTimer() / 350;
++         var c:Number = Math.cos(theta);
++         var s:Number = Math.sin(theta) / Math.sqrt(3);
++         if(channel == 0)
++         {
++            return 1.15 * (1 + 2 * c) / 3;
++         }
++         if(channel == 1)
++         {
++            return 1.15 * ((1 - c) / 3 - s);
++         }
++         return 1.15 * ((1 - c) / 3 + s);
++      }
++
+       public function doTinting(param1:Boolean = false, param2:Number = 1) : void
+       {
+          var _loc3_:Number = tintRed() * param2;

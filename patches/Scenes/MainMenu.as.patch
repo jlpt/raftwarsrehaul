@@ -1,0 +1,92 @@
+--- a/Scenes/MainMenu.as
++++ b/Scenes/MainMenu.as
+@@ -43,7 +43,9 @@
+       
+       public var changed:Boolean = false;
+       
+-      public var unlockAllEpisodes:Boolean = false;
++      // MOD: every mission (1-17) and the ending are selectable from the start. Only the menu buttons
++      // are affected; progress is still saved normally. Set to false to restore the original unlocks.
++      public var unlockAllEpisodes:Boolean = true;
+       
+       public var globalMenuY:Number = 350;
+       
+@@ -212,7 +214,7 @@
+             _loc3_++;
+          }
+          var _loc4_:Boolean = false;
+-         if(_loc2_ == 13 || unlockAllEpisodes)
++         if(_loc2_ >= 13 || unlockAllEpisodes)
+          {
+             _loc4_ = true;
+             _loc1_.push(addButton("ENDING"));
+@@ -223,17 +225,52 @@
+          var _loc8_:Layout = horiz(_loc7_,16);
+          var _loc9_:GameObject = addButton("BACK");
+          var _loc10_:GameObject = txt("SELECT A MISSION",32);
++         // MOD: the extra missions live on their own page, opened from here
++         var episode5Button:GameObject = addButton("EPISODE 5");
++         if(_loc2_ < 13 && !unlockAllEpisodes)
++         {
++            episode5Button.disableButton();
++         }
+          var _loc11_:Layout = vert([_loc10_,_loc8_,_loc9_],8,400,globalMenuY);
++         episode5Button.basex = _loc9_.basex + 200;
++         episode5Button.basey = _loc9_.basey;
+          _loc1_.push(_loc9_);
+          LayerFilter.applySlideIn(_loc7_[0],-1);
+          LayerFilter.applySlideIn(_loc7_[1],-1);
+          LayerFilter.applySlideIn(_loc7_[2],1);
+          LayerFilter.applySlideIn(_loc7_[3],1);
+          LayerFilter.applySlideIn(_loc9_,1);
++         LayerFilter.applySlideIn(episode5Button,1);
+          LayerFilter.applySlideIn(_loc10_,-1);
+-         return _loc11_.getGameObjects();
+-      }
+-      
++         return _loc11_.getGameObjects().concat([episode5Button]);
++      }
++      
++      // MOD: mission select page for episode 5 (missions 14-17)
++      public function extraMissionButtons() : Array
++      {
++         var button:GameObject = null;
++         var buttons:Array = new Array();
++         var reached:int = int(Profile.current.lookup("currentmission"));
++         var mission:int = 13;
++         while(mission <= MainScene.FINAL_EPISODE)
++         {
++            button = addButton("MISSION " + String(mission + 1));
++            if(mission > reached && !unlockAllEpisodes)
++            {
++               button.disableButton();
++            }
++            buttons.push(button);
++            mission++;
++         }
++         var title:GameObject = txt("EPISODE 5",32);
++         var back:GameObject = addButton("BACK");
++         var layout:Layout = vert([title,vert(buttons),back],8,400,globalMenuY);
++         LayerFilter.applySlideIn(buttons,1);
++         LayerFilter.applySlideIn(title,-1);
++         LayerFilter.applySlideIn(back,-1);
++         return layout.getGameObjects();
++      }
++
+       public function mainButtons() : Array
+       {
+          var _loc1_:Array = new Array();
+@@ -580,8 +617,12 @@
+          {
+             layer.pop();
+          }
++         if(layer.buttonHit("EPISODE 5"))
++         {
++            layer.push(extraMissionButtons);
++         }
+          _loc3_ = 0;
+-         while(_loc3_ < 13)
++         while(_loc3_ <= MainScene.FINAL_EPISODE)
+          {
+             if(layer.buttonHit("MISSION " + (_loc3_ + 1)))
+             {
