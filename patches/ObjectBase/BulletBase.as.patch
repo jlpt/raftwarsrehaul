@@ -1,0 +1,83 @@
+--- a/ObjectBase/BulletBase.as
++++ b/ObjectBase/BulletBase.as
+@@ -24,6 +24,11 @@
+       public var angle:Number = 0;
+       
+       public var mediumSprite:BitmapData;
++
++      // MOD: homing perk: the enemy this bullet is steering towards, re-picked every 10 ticks
++      public var homingTarget:EnemyBase;
++
++      public var homingTicks:int = 0;
+       
+       public function BulletBase(param1:GameScene, param2:Class, param3:String, param4:int, param5:int)
+       {
+@@ -46,6 +51,10 @@
+       override public function _update() : void
+       {
+          var _loc2_:GameObject = null;
++         if(wep && wep.homingTurn() > 0)
++         {
++            steer(wep.homingTurn()); // MOD
++         }
+          basex += cosd(angle) * speed;
+          basey += sind(angle) * speed;
+          baseRotation = angle - 90;
+@@ -86,6 +95,57 @@
+          }
+       }
+       
++      // MOD: turn up to param1 degrees per tick towards the nearest enemy roughly ahead
++      public function steer(param1:Number) : void
++      {
++         var _loc2_:Object = null;
++         var _loc3_:EnemyBase = null;
++         var _loc4_:Number = NaN;
++         var _loc5_:Number = NaN;
++         if(homingTicks <= 0 || !homingTarget || homingTarget._removed || homingTarget._killed || homingTarget.falling)
++         {
++            homingTicks = 10;
++            homingTarget = null;
++            _loc4_ = 400;
++            for each(_loc2_ in gs.objects)
++            {
++               _loc3_ = _loc2_ as EnemyBase;
++               if(_loc3_ && !_loc3_._removed && !_loc3_._killed && !_loc3_.falling && !_loc3_.isTeleporting() && hitList[_loc3_.id] != true)
++               {
++                  if(Math.abs(angleDiff(Math.atan2(_loc3_.basey - basey,_loc3_.basex - basex) * 180 / Math.PI)) < 110)
++                  {
++                     _loc5_ = _loc3_.distanceToPoint(basex,basey);
++                     if(_loc5_ < _loc4_)
++                     {
++                        _loc4_ = _loc5_;
++                        homingTarget = _loc3_;
++                     }
++                  }
++               }
++            }
++         }
++         --homingTicks;
++         if(homingTarget)
++         {
++            _loc5_ = angleDiff(Math.atan2(homingTarget.basey - basey,homingTarget.basex - basex) * 180 / Math.PI);
++            angle += Math.max(-param1,Math.min(param1,_loc5_));
++         }
++      }
++
++      public function angleDiff(param1:Number) : Number
++      {
++         var _loc2_:Number = (param1 - angle) % 360;
++         if(_loc2_ > 180)
++         {
++            _loc2_ -= 360;
++         }
++         else if(_loc2_ < -180)
++         {
++            _loc2_ += 360;
++         }
++         return _loc2_;
++      }
++
+       public function hits(param1:EnemyBase) : Boolean
+       {
+          return Math.abs(basex - param1.basex) < 30 && Math.abs(basey - param1.basey) < 30;

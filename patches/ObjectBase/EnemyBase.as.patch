@@ -25,7 +25,21 @@
        
        internal var lastDestX:int = -1;
        
-@@ -291,6 +299,10 @@
+@@ -48,6 +56,13 @@
+       public var legs:LegsBase;
+       
+       public var hasBeenFrozen:Boolean = false;
++
++      // MOD: burning (BURN perk): damage per second, ticks left, fractional damage carried over
++      public var burnDps:Number = 0;
++
++      public var burnTicks:int = 0;
++
++      public var burnAcc:Number = 0;
+       
+       public var lastHit:int = 100;
+       
+@@ -291,6 +306,10 @@
        
        public function setupDifficulty(param1:int) : void
        {
@@ -36,7 +50,7 @@
           toughness = param1;
           if(param1 > 0)
           {
-@@ -301,11 +313,7 @@
+@@ -301,11 +320,7 @@
              }
           }
           tint(1,0,0);
@@ -49,7 +63,70 @@
           totalHealth = health;
        }
        
-@@ -686,6 +694,10 @@
+@@ -451,7 +466,8 @@
+             }
+             param1.hasHit(this);
+             param1.hitList[id] = true;
+-            health -= param1.damage();
++            // MOD: the weapon may change the damage (crits)
++            health -= param1.wep ? param1.wep.modifyHitDamage(param1,this,param1.damage()) : param1.damage();
+          }
+          else if(param2 == 0)
+          {
+@@ -490,7 +506,52 @@
+                MainScene(gs).setPassable(logicalSquareX(),logicalSquareY(),true);
+             }
+             MainScene(gs).player.giveExperience(experience());
++            // MOD: on-kill perks (shield siphon, volatile)
++            if(param1 && param1.wep)
++            {
++               param1.wep.onKill(param1,this);
++            }
+             kill();
++         }
++      }
++
++      // MOD: set this enemy on fire for 3 s; a stronger burn replaces a weaker one
++      public function applyBurn(param1:Number) : void
++      {
++         if(param1 >= burnDps || burnTicks < 100)
++         {
++            burnDps = Math.max(param1,0.5);
++         }
++         burnTicks = 300;
++      }
++
++      // MOD: burn damage is applied 4 times a second through hitBy, so kills count normally
++      public function updateBurn() : void
++      {
++         var _loc1_:int = 0;
++         if(burnTicks <= 0 || _killed || health < 0)
++         {
++            return;
++         }
++         --burnTicks;
++         burnAcc += burnDps / 100;
++         if(burnTicks % 25 == 0)
++         {
++            if(MainMenu.levelOfDetail)
++            {
++               emitConditionalParticles("Spark");
++            }
++            _loc1_ = int(burnAcc);
++            if(_loc1_ >= 1)
++            {
++               burnAcc -= _loc1_;
++               hitBy(null,_loc1_);
++            }
++         }
++         if(burnTicks <= 0)
++         {
++            burnDps = 0;
++            burnAcc = 0;
+          }
+       }
+       
+@@ -686,6 +747,10 @@
           {
              return 0.4;
           }
@@ -60,7 +137,7 @@
           if(toughness == 0)
           {
              return 0;
-@@ -802,6 +814,10 @@
+@@ -802,6 +867,10 @@
           if(frozen > 0)
           {
              return 1;
@@ -71,7 +148,15 @@
           }
           if(toughness == 0)
           {
-@@ -1088,6 +1104,10 @@
+@@ -961,6 +1030,7 @@
+       {
+          var _loc3_:GameObjectFilter = null;
+          var _loc4_:GameObjectFilter = null;
++         updateBurn(); // MOD
+          if(isTeleporting() || Boolean(frozen))
+          {
+             animFreeze = true;
+@@ -1088,6 +1158,10 @@
           {
              return 0.6;
           }
@@ -82,7 +167,7 @@
           if(toughness == 0)
           {
              return 0.79;
-@@ -1103,6 +1123,28 @@
+@@ -1103,6 +1177,28 @@
           return b;
        }
        

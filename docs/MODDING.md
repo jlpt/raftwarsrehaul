@@ -119,6 +119,23 @@ follows the game's own `8 + 6 × tier`.
 **Change a weapon.** Copy `decompiled/scripts/Weapons/Blaster.as` (for example) to `mod_src/Weapons/` and
 edit `levelDamage` or the other static arrays. Rebuild and fire the weapon in game to check it.
 
+**Add a perk.** Add a `kind` constant to `mod_src/WeaponPlugin/WeaponPluginSplash.as` (before `KIND_COUNT`,
+which `WeaponGenerator.applyRarity` uses to build the perk pool), then give it a `roll()` case and an
+`attributeText()` label (keep it short: a Mythic's three perks share one 40-character tooltip line).
+Implement it where it fires: on hit in `hitEnemy()`, on kill in `WeaponBase.onKill()`, on damage in
+`WeaponBase.modifyHitDamage()`, while flying in `BulletBase._update()`, or on firing in `WeaponBase.fire()`.
+Read its strength with `wep.perk(kind)`. Add a `trace("PERK …")` behind `WeaponGenerator.debugKeys` and a
+line in `modtools/perk_test.sh` so the test counts it.
+
+**Add a unique (legendary/mythic) weapon.** Append an entry to `WeaponGenerator.uniques`: weapon class,
+name, one-line effect text, intrinsic perks as `[kind, amount, count]`, and optional `dmg`/`rof`
+multipliers or `pierce`. Never reorder or remove entries: saved weapons refer to them by index.
+
+**Tune rarity odds.** `WeaponGenerator.rarityWeights` holds the base odds per source (drop, chest, shop);
+`rollRarity()` multiplies Rare and up by `(1 + 0.12 × episode) × (1 + Rare Weapon Sensor % / 50)` to the
+power of (rarity − 1); `maxRarity()` caps the rarity by mission. Check with the debug build: every weapon
+generated is traced to the log with its rarity.
+
 **Re-roll or resize an extra mission.** Edit its `MISSIONS` entry (`seed`, `rooms`, `main`, `chests`,
 `budget`, `pool`, `guards`) and run `./build.sh`. Every mission is selectable from the start, so you can open it directly.
 

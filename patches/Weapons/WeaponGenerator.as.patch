@@ -1,0 +1,521 @@
+--- a/Weapons/WeaponGenerator.as
++++ b/Weapons/WeaponGenerator.as
+@@ -1,7 +1,17 @@
+ package Weapons
+ {
+    import GameScene.GameScene;
++   import InventoryScreen.HUDDisplay;
++   import InventoryScreen.Shop;
++   import ObjectBase.EnemyBase;
++   import ObjectBase.PickupWeapon;
++   import ObjectBase.PlayerBase;
++   import Objects.Grunt;
++   import Objects.Hulk;
+    import Scenes.MainScene;
++   import Serialization.SerializedObject;
++   import Serialization.StoreObject;
++   import Tools.Input;
+    import Tools.Random;
+    import WeaponPlugin.WeaponPluginBase;
+    import WeaponPlugin.WeaponPluginFlyThrough;
+@@ -9,21 +19,58 @@
+    import WeaponPlugin.WeaponPluginKnockback;
+    import WeaponPlugin.WeaponPluginRateOfFire;
+    import WeaponPlugin.WeaponPluginSpeed;
++   import WeaponPlugin.WeaponPluginSplash;
+    import flash.utils.getDefinitionByName;
+-   
++
+    public class WeaponGenerator
+    {
+-      
++
+       public static var weaponClasses:Array = [Laser,Blaster,Grenade,Shotgun,PulseGun,Knockback,LaserMinelayer];
+-      
++
++      // MOD: where a weapon comes from; decides its rarity odds
++      public static const FROM_DROP:int = 0;
++
++      public static const FROM_CHEST:int = 1;
++
++      public static const FROM_SHOP:int = 2;
++
++      // relative odds of common, uncommon, rare, epic, legendary, mythic before the mission and
++      // Rare Weapon Sensor boosts (drops roughly match the original game's 59/33/8% perk split)
++      public static var rarityWeights:Array = [[60,30,8,2.5,0.6,0.12],[0,0,50,30,15,5],[55,30,12,3,0.5,0]];
++
++      // MOD: legendary/mythic weapons. A weapon stores its index here, so only ever append to this list.
++      // perks are [kind, amount, count] of WeaponPluginSplash, added as intrinsic (the text explains them);
++      // dmg and rof multiply damage and the delay between shots.
++      public static var uniques:Array = [
++         {"cls":Blaster,"name":"PEACEMAKER","text":"FIRES A 3-SHOT SPREAD","perks":[[WeaponPluginSplash.MULTISHOT,2]],"dmg":1.1},
++         {"cls":Blaster,"name":"LEECH","text":"CRITS, KILLS RECHARGE 6% SHIELD","perks":[[WeaponPluginSplash.SIPHON,6],[WeaponPluginSplash.CRIT,15]]},
++         {"cls":Blaster,"name":"HORNET","text":"HOMING STINGERS, FAST FIRE","perks":[[WeaponPluginSplash.HOMING,4]],"rof":0.7},
++         {"cls":Shotgun,"name":"DRAGON BREATH","text":"PELLETS SET FOES ABLAZE","perks":[[WeaponPluginSplash.BURN,80]]},
++         {"cls":Shotgun,"name":"THUNDERCLAP","text":"PELLETS ARC TO 2 MORE FOES","perks":[[WeaponPluginSplash.CHAIN,35,2]]},
++         {"cls":Grenade,"name":"WIDOWMAKER","text":"VICTIMS EXPLODE, +30% DAMAGE","perks":[[WeaponPluginSplash.VOLATILE,60]],"dmg":1.3},
++         {"cls":Laser,"name":"SUNLANCE","text":"BURNS EVERYTHING IT TOUCHES","perks":[[WeaponPluginSplash.BURN,100]],"rof":0.85},
++         {"cls":PulseGun,"name":"STORMCALLER","text":"LIGHTNING JUMPS TO 3 FOES","perks":[[WeaponPluginSplash.CHAIN,50,3]]},
++         {"cls":Knockback,"name":"BOUNCER","text":"PIERCING PELLETS, +25% DAMAGE","perks":[],"pierce":true,"dmg":1.25},
++         {"cls":LaserMinelayer,"name":"MINCER","text":"TWIN SEEKING BLADES","perks":[[WeaponPluginSplash.MULTISHOT,1],[WeaponPluginSplash.HOMING,3]]}
++      ];
++
++      // MOD: debug build only (modtools/build_debug.sh): G drops a weapon of the next rarity, H the next
++      // unique, J equips the next four uniques, K spawns three grunts and a hulk to the right, L checks the
++      // equipped weapons survive the save format, O opens the shop. Every weapon made and every perk that
++      // triggers is traced to the log.
++      public static var debugKeys:Boolean = false;
++
++      public static var debugRarity:int = 0;
++
++      public static var debugUnique:int = 0;
++
+       public function WeaponGenerator()
+       {
+          super();
+       }
+-      
++
+       public static function generateWeapon(param1:int, param2:int, param3:Boolean = false, param4:Boolean = false) : WeaponBase
+       {
+-         var newLevel:*;
+          var possibilities:Array;
+          var variance:*;
+          var c:int = 0;
+@@ -36,16 +83,6 @@
+          var forceRare:Boolean = param3;
+          var forShop:Boolean = param4;
+          var ms:MainScene = MainScene(GameScene.current());
+-         level = 10 + 7 * ms.currentEpisode;
+-         if(level < 0)
+-         {
+-            level = 20;
+-         }
+-         if(level > 65)
+-         {
+-            level = 65;
+-         }
+-         newLevel = dodgyPoisson(level);
+          possibilities = new Array();
+          variance = 0;
+          while(variance < 10)
+@@ -74,13 +111,8 @@
+                      }
+                   }
+                   wb = new weaponClasses[c]();
+-                  addPlugins(wb);
+                   if(forceRare)
+                   {
+-                     while(wb.properPluginCount() < 2)
+-                     {
+-                        addPlugins(wb);
+-                     }
+                      wb.level = 2;
+                   }
+                   possibilities.push(wb);
+@@ -89,11 +121,12 @@
+             }
+             variance++;
+          }
++         // MOD: perks no longer come with the base weapon, so the level filters use the base requirement;
++         // rarity (and its perks) is rolled afterwards
+          if(!forceRare)
+          {
+             if(forShop)
+             {
+-               minLevel = playerLevel + 1 + 3;
+                if(playerLevel > 8)
+                {
+                   minLevel = playerLevel + 1 + 3;
+@@ -112,11 +145,11 @@
+                }
+                possibilities = possibilities.filter(function(param1:Object, param2:int, param3:Array):Boolean
+                {
+-                  return WeaponBase(param1).playerMinLevelForShop() <= minLevel;
++                  return WeaponBase(param1).playerMinLevel() <= minLevel;
+                });
+                possibilities = possibilities.filter(function(param1:Object, param2:int, param3:Array):Boolean
+                {
+-                  return WeaponBase(param1).playerMinLevelForShop() >= playerLevel - 5 || param1 is PulseGun;
++                  return WeaponBase(param1).playerMinLevel() >= playerLevel - 5 || param1 is PulseGun;
+                });
+             }
+             else
+@@ -126,42 +159,324 @@
+                {
+                   maxLevel--;
+                }
+-               else if(maxLevel > 6)
+-               {
+-                  maxLevel -= 2;
+-               }
+-               else if(maxLevel > 12)
+-               {
+-                  maxLevel -= 3;
+-               }
+                possibilities = possibilities.filter(function(param1:Object, param2:int, param3:Array):Boolean
+                {
+-                  return WeaponBase(param1).playerMinLevelForShop() <= maxLevel;
++                  return WeaponBase(param1).playerMinLevel() <= maxLevel;
+                });
+             }
+-            if(ms.currentEpisode == 0)
+-            {
+-               possibilities = possibilities.filter(function(param1:Object, param2:int, param3:Array):Boolean
+-               {
+-                  return WeaponBase(param1).properPluginCount() == 0;
+-               });
+-            }
+-            if(ms.currentEpisode == 1)
+-            {
+-               possibilities = possibilities.filter(function(param1:Object, param2:int, param3:Array):Boolean
+-               {
+-                  return WeaponBase(param1).properPluginCount() <= 1;
+-               });
+-            }
+          }
+          if(possibilities.length >= 1)
+          {
+-            return possibilities[Random.randInt(0,possibilities.length - 1)];
+-         }
+-         trace(" NO POSSIBILITY");
+-         b = new Blaster();
+-         b.level = 0;
+-         return b;
++            wb = possibilities[Random.randInt(0,possibilities.length - 1)];
++         }
++         else
++         {
++            trace(" NO POSSIBILITY");
++            wb = new Blaster();
++            wb.level = 0;
++         }
++         applyRarity(wb,rollRarity(forceRare ? FROM_CHEST : (forShop ? FROM_SHOP : FROM_DROP)));
++         if(debugKeys)
++         {
++            traceWeapon("generated",wb);
++         }
++         return wb;
++      }
++
++      // MOD: the best rarity that can appear in the current mission (the original game allowed no perks
++      // in mission 1 and at most one in mission 2)
++      public static function maxRarity(param1:int) : int
++      {
++         if(param1 <= 0)
++         {
++            return WeaponBase.COMMON;
++         }
++         if(param1 == 1)
++         {
++            return WeaponBase.UNCOMMON;
++         }
++         if(param1 <= 3)
++         {
++            return WeaponBase.RARE;
++         }
++         if(param1 <= 6)
++         {
++            return WeaponBase.EPIC;
++         }
++         if(param1 <= 11)
++         {
++            return WeaponBase.LEGENDARY;
++         }
++         return WeaponBase.MYTHIC;
++      }
++
++      // sum of equipped Rare Weapon Sensor bonuses, in percent
++      public static function magicFind() : Number
++      {
++         var _loc2_:Object = null;
++         var _loc1_:Number = 0;
++         var _loc3_:MainScene = GameScene.current() as MainScene;
++         if(_loc3_ && _loc3_.player)
++         {
++            for each(_loc2_ in _loc3_.player.items)
++            {
++               if(_loc2_ is ItemMagicFind)
++               {
++                  _loc1_ += ItemMagicFind(_loc2_).attribute;
++               }
++            }
++         }
++         return _loc1_;
++      }
++
++      public static function rollRarity(param1:int) : int
++      {
++         var _loc6_:int = 0;
++         var _loc2_:MainScene = GameScene.current() as MainScene;
++         var _loc3_:int = _loc2_ ? int(_loc2_.currentEpisode) : 0;
++         var _loc4_:int = maxRarity(_loc3_);
++         if(param1 == FROM_CHEST)
++         {
++            _loc4_ = Math.max(_loc4_,WeaponBase.RARE);
++         }
++         // later missions and the Rare Weapon Sensor make rare-and-up more likely, more so the rarer
++         var _loc5_:Number = (1 + 0.12 * _loc3_) * (1 + magicFind() / 50);
++         var _loc7_:Array = new Array();
++         var _loc8_:Number = 0;
++         _loc6_ = 0;
++         while(_loc6_ <= WeaponBase.MYTHIC)
++         {
++            _loc7_[_loc6_] = _loc6_ > _loc4_ ? 0 : rarityWeights[param1][_loc6_] * (_loc6_ >= WeaponBase.RARE ? Math.pow(_loc5_,_loc6_ - 1) : 1);
++            _loc8_ += _loc7_[_loc6_];
++            _loc6_++;
++         }
++         if(_loc8_ <= 0)
++         {
++            return _loc4_;
++         }
++         var _loc9_:Number = Math.random() * _loc8_;
++         _loc6_ = 0;
++         while(_loc6_ <= WeaponBase.MYTHIC)
++         {
++            _loc9_ -= _loc7_[_loc6_];
++            if(_loc9_ < 0)
++            {
++               return _loc6_;
++            }
++            _loc6_++;
++         }
++         return _loc4_;
++      }
++
++      // MOD: set the rarity and roll its perks (and the unique effect for legendary/mythic)
++      public static function applyRarity(param1:WeaponBase, param2:int, param3:int = -1) : void
++      {
++         var _loc4_:Array = null;
++         var _loc5_:Object = null;
++         var _loc6_:Array = null;
++         var _loc7_:int = 0;
++         var _loc8_:WeaponPluginBase = null;
++         var _loc9_:int = 0;
++         var _loc10_:Object = null;
++         param1.rarity = param2;
++         param1.unique = -1;
++         param1.plugins = param1.plugins.filter(function(param1:Object, param2:int, param3:Array):Boolean
++         {
++            return WeaponPluginBase(param1).isIntrinsic;
++         });
++         var _loc11_:Object = new Object();
++         if(param2 >= WeaponBase.LEGENDARY)
++         {
++            if(param3 < 0)
++            {
++               _loc4_ = new Array();
++               _loc7_ = 0;
++               while(_loc7_ < uniques.length)
++               {
++                  if(param1 is uniques[_loc7_].cls)
++                  {
++                     _loc4_.push(_loc7_);
++                  }
++                  _loc7_++;
++               }
++               if(_loc4_.length > 0)
++               {
++                  param3 = _loc4_[Random.randInt(0,_loc4_.length - 1)];
++               }
++            }
++            if(param3 >= 0)
++            {
++               param1.unique = param3;
++               _loc5_ = uniques[param3];
++               for each(_loc6_ in _loc5_.perks)
++               {
++                  param1.addPlugin(WeaponPluginSplash.make(_loc6_[0],_loc6_[1],_loc6_.length > 2 ? int(_loc6_[2]) : 0,true));
++                  _loc11_["k" + _loc6_[0]] = true;
++               }
++               if(_loc5_.pierce)
++               {
++                  _loc8_ = new WeaponPluginFlyThrough();
++                  _loc8_.isIntrinsic = true;
++                  param1.addPlugin(_loc8_);
++                  _loc11_["FlyThrough"] = true;
++               }
++            }
++         }
++         // the old perk classes plus every new kind, each at most once
++         var _loc12_:Array = ["FlyThrough","RateOfFire","Knockback","Freeze","Speed"];
++         _loc7_ = WeaponPluginSplash.BURN;
++         while(_loc7_ < WeaponPluginSplash.KIND_COUNT)
++         {
++            _loc12_.push(_loc7_);
++            _loc7_++;
++         }
++         _loc9_ = 0;
++         _loc7_ = 0;
++         while(_loc9_ < WeaponBase.rarityPerks[param2] && _loc7_ < 100)
++         {
++            _loc7_++;
++            _loc10_ = _loc12_[Random.randInt(0,_loc12_.length - 1)];
++            if(_loc11_[_loc10_ is String ? _loc10_ : "k" + _loc10_])
++            {
++               continue;
++            }
++            _loc8_ = makePerk(_loc10_,param2);
++            if(!_loc8_.isApplicable(param1))
++            {
++               continue;
++            }
++            _loc11_[_loc10_ is String ? _loc10_ : "k" + _loc10_] = true;
++            param1.addPlugin(_loc8_);
++            _loc9_++;
++         }
++      }
++
++      public static function makePerk(param1:Object, param2:int) : WeaponPluginBase
++      {
++         switch(param1)
++         {
++            case "FlyThrough":
++               return new WeaponPluginFlyThrough();
++            case "RateOfFire":
++               return new WeaponPluginRateOfFire();
++            case "Knockback":
++               return new WeaponPluginKnockback();
++            case "Freeze":
++               return new WeaponPluginFreeze();
++            case "Speed":
++               return new WeaponPluginSpeed();
++            default:
++               return WeaponPluginSplash.roll(int(param1),param2);
++         }
++      }
++
++      public static function traceWeapon(param1:String, param2:WeaponBase) : void
++      {
++         trace("WEAPON " + param1 + ": " + WeaponBase.rarityNames[param2.effectiveRarity()] + " " + param2.displayName() + " (" + param2.name() + ") dmg " + param2.damage() + " rof " + param2.rateOfFire() + " perks [" + param2.properties() + "] value " + param2.value());
++      }
++
++      // MOD: test keys for the debug build
++      public static function debugUpdate(param1:PlayerBase) : void
++      {
++         var _loc2_:PickupWeapon = null;
++         var _loc3_:WeaponBase = null;
++         var _loc4_:Object = null;
++         var _loc5_:int = 0;
++         if(Input.i.keyHit(71))
++         {
++            _loc2_ = new PickupWeapon(param1.gs,param1.basex + 70 + 80 * (debugRarity % 3),param1.basey + (debugRarity < 3 ? -60 : 60));
++            applyRarity(_loc2_.wep,debugRarity);
++            traceWeapon("debug drop",_loc2_.wep);
++            debugRarity = (debugRarity + 1) % (WeaponBase.MYTHIC + 1);
++         }
++         if(Input.i.keyHit(72))
++         {
++            _loc4_ = uniques[debugUnique];
++            _loc3_ = new _loc4_.cls();
++            _loc3_.level = 2;
++            applyRarity(_loc3_,debugUnique % 2 == 0 ? WeaponBase.LEGENDARY : WeaponBase.MYTHIC,debugUnique);
++            _loc2_ = new PickupWeapon(param1.gs,param1.basex + 70,param1.basey);
++            _loc2_.wep = _loc3_;
++            traceWeapon("debug unique",_loc3_);
++            debugUnique = (debugUnique + 1) % uniques.length;
++         }
++         if(Input.i.keyHit(79))
++         {
++            HUDDisplay.open(param1.gs,Shop);
++         }
++         if(Input.i.keyHit(76))
++         {
++            debugSaveCheck(param1);
++         }
++         if(Input.i.keyHit(75))
++         {
++            _loc5_ = 0;
++            while(_loc5_ < 4)
++            {
++               _loc4_ = _loc5_ < 3 ? new Grunt(param1.gs,param1.basex + 190 + 60 * (_loc5_ % 2),param1.basey - 80 + 70 * _loc5_) : new Hulk(param1.gs,param1.basex + 260,param1.basey);
++               EnemyBase(_loc4_).setupDifficulty(1);
++               _loc5_++;
++            }
++            trace("PERK spawned test enemies");
++         }
++         if(Input.i.keyHit(74))
++         {
++            _loc5_ = 0;
++            while(_loc5_ < 4)
++            {
++               _loc4_ = uniques[(debugUnique + _loc5_) % uniques.length];
++               _loc3_ = new _loc4_.cls();
++               _loc3_.level = 0;
++               applyRarity(_loc3_,_loc5_ < 2 ? WeaponBase.LEGENDARY : WeaponBase.MYTHIC,(debugUnique + _loc5_) % uniques.length);
++               param1.weapons[_loc5_] = _loc3_;
++               traceWeapon("debug equip " + _loc5_,_loc3_);
++               _loc5_++;
++            }
++            debugUnique = (debugUnique + 4) % uniques.length;
++         }
++      }
++
++      // MOD: debug: put the equipped weapons through the save format (and an old-save version of it,
++      // without the mod's fields) and check what comes back
++      public static function debugSaveCheck(param1:PlayerBase) : void
++      {
++         var _loc2_:WeaponBase = null;
++         var _loc3_:Array = null;
++         var _loc4_:WeaponBase = null;
++         var _loc5_:Array = null;
++         var _loc6_:Array = null;
++         var _loc7_:Array = null;
++         for each(_loc2_ in param1.weapons)
++         {
++            if(_loc2_)
++            {
++               _loc3_ = SerializedObject.serialize(_loc2_).toArray();
++               _loc4_ = StoreObject.unPackObject(_loc3_) as WeaponBase;
++               trace("SAVE " + (_loc4_.rarity == _loc2_.rarity && _loc4_.unique == _loc2_.unique && _loc4_.level == _loc2_.level && _loc4_.properties() == _loc2_.properties() && _loc4_.damage() == _loc2_.damage() && _loc4_.rateOfFire() == _loc2_.rateOfFire() && _loc4_.plugins.length == _loc2_.plugins.length ? "ok" : "MISMATCH") + " " + _loc4_.displayName() + " [" + _loc4_.properties() + "]");
++               _loc5_ = new Array();
++               for each(_loc6_ in _loc3_[1])
++               {
++                  if(_loc6_[0] == "plugins")
++                  {
++                     _loc7_ = new Array();
++                     for each(var _loc8_:Array in _loc6_[1])
++                     {
++                        _loc7_.push([_loc8_[0],_loc8_[1].filter(function(param1:Object, param2:int, param3:Array):Boolean
++                        {
++                           return param1[0] == "isIntrinsic" || param1[0] == "percent";
++                        })]);
++                     }
++                     _loc5_.push(["plugins",_loc7_,"Array"]);
++                  }
++                  else if(_loc6_[0] != "rarity" && _loc6_[0] != "unique")
++                  {
++                     _loc5_.push(_loc6_);
++                  }
++               }
++               _loc4_ = StoreObject.unPackObject([_loc3_[0],_loc5_]) as WeaponBase;
++               trace("SAVE old-format: " + WeaponBase.rarityNames[_loc4_.effectiveRarity()] + " " + _loc4_.displayName() + " perks " + _loc4_.properPluginCount() + " [" + _loc4_.properties() + "] dmg " + _loc4_.damage());
++            }
++         }
+       }
+       
+       public static function generateItem(param1:int = 40, param2:Boolean = false) : ItemBase
+@@ -193,7 +508,7 @@
+          }
+          return null;
+       }
+-      
++
+       public static function dodgyPoisson(param1:int) : int
+       {
+          var _loc2_:int = 0;
+@@ -208,7 +523,8 @@
+          }
+          return _loc2_;
+       }
+-      
++
++      // MOD: kept for anything that still calls it; rolls the original 10% chance for each old perk
+       public static function addPlugins(param1:WeaponBase) : void
+       {
+          var wb:WeaponBase = param1;
+@@ -239,4 +555,3 @@
+       }
+    }
+ }
+-

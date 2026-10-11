@@ -61,6 +61,14 @@ Verified pitfalls:
   or a script name`. Put new code and data in an existing class (for example as static members).
 - **Line endings don't matter.** `patches.py` diffs LF-normalised text and writes `mod_src/` with CRLF
   (like the JPEXS export); mixed endings in a file you edit are harmless.
+- **Saved classes can't change shape freely.** Weapons, items and their plugins are saved by class name
+  plus the fields their `serializeFields()` lists. New fields are fine (old saves leave them at their
+  default), so give every new field a default that means "old save". `WeaponGenerator.uniques` is stored by
+  index: only append to it.
+- **New perks are `kind`s of `WeaponPluginSplash`** (kind 0 is the original grenade splash), because a new
+  plugin class can't be added.
+- **`GameObject.tint(r,g,b)` is a channel-mixing matrix**, not a multiply (it suits the red enemy sprites).
+  Greys stay grey under it; use `obj.transform.colorTransform` to colour grey art.
 - **Helper classes in an existing file work.** A file may define extra non-public classes after the
   `package { }` block (`class Foo { ... }`); JPEXS compiles them into the same script. They can't be
   found by name (`getDefinitionByName`), so anything saved to the profile must stay an existing public class.
@@ -109,9 +117,24 @@ Verified pitfalls:
 | Episode 5 menu page, unlocks | `mod_src/Scenes/MainMenu.as` (`unlockAllEpisodes = true`: every mission and the ending selectable; menu-only, saves unaffected) |
 | Enemy behaviour / sprite and setup | `decompiled/scripts/ObjectBase/<Name>Base.as` / `ObjectConstructors/<Name>_constructor.as` |
 | Player weapons and items | `decompiled/scripts/Weapons/` (for example `Blaster.levelDamage`) |
+| Weapon rarity (MOD): names, colours, damage bonus, perk count, value, badges and floor glows | `mod_src/Weapons/WeaponBase.as` (statics at the top, `rarityBadge`, `rarityGlow`) |
+| Rarity odds, max rarity per mission, unique weapons, debug keys | `mod_src/Weapons/WeaponGenerator.as` (`rarityWeights`, `maxRarity`, `uniques`, `debugUpdate`) |
+| New perks (MOD): burn, chain, crit, multishot, homing, siphon, volatile | `mod_src/WeaponPlugin/WeaponPluginSplash.as` (`kind`); effects in `EnemyBase` (burn, crit/kill hooks in `hitBy`), `BulletBase.steer` (homing), `WeaponBase.fire` (multishot), `WeaponBase.onKill` |
 | Original level data | `decompiled/scripts/Levels/` (parsed to `modtools/levels.json` by `parse_levels.py`) |
 
 ## Testing on Linux
+
+Test scripts (all use the debug build, a throwaway save, and fail on any ActionScript error in Ruffle's log):
+- `modtools/smoke_test.sh [SWF]`: menus → Mission 1, walk and shoot.
+- `modtools/rarity_test.sh`: drops one weapon of each rarity, equips uniques, checks the save round trip,
+  screenshots the drops, firing, inventory and two tooltips (`build/rarity_*.png`).
+- `modtools/perk_test.sh`: three rounds of equip uniques + spawn enemies + shoot; prints how often each perk
+  triggered (`build/perk_*.png`).
+- `modtools/shop_test.sh`: opens the shop in Mission 13 and lists its stock (`build/shop.png`).
+
+Debug-build keys (`WeaponGenerator.debugKeys`): G drop next rarity, H drop next unique, J equip next four
+uniques, K spawn three grunts and a hulk, L save round-trip check, O open the shop. Weapons generated and
+perks triggered are `trace`d to Ruffle's log (`WEAPON …`, `PERK …`, `SAVE …`).
 
 Headless machines (no Xephyr, no `$DISPLAY`): the smoke test starts `Xvfb :99` instead, and `vshot.sh`
 uses ImageMagick `import` when `xwd` is missing. Ruffle needs `libxkbcommon-x11-0` and Mesa (`mesa-vulkan-drivers`,

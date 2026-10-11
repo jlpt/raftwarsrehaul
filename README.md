@@ -35,6 +35,27 @@ To move your progress from Linux to Windows, copy that file across.
   a key-gated exit, checkpoints, a mid-mission shop, new briefings and their own floor tints.
   Tier odds: M14 yellow/purple → M15 mostly purple + some white → M16 purple/white + a few rainbow → M17 white/rainbow.
 - Finishing Mission 13 still plays the ending. Finishing Mission 17 plays it again.
+- **Weapon rarities**: Common, Uncommon, Rare, **Epic**, **Legendary** and **Mythic**. Each has its own
+  badge, floor glow (Mythic cycles through the rainbow) and name colour.
+
+  | Rarity | Perks | Damage | First possible in |
+  |---|---|---|---|
+  | Common | 0 | +0% | Mission 1 |
+  | Uncommon | 1 | +5% | Mission 2 |
+  | Rare | 2 | +10% | Mission 3 (chests: always Rare or better) |
+  | Epic | 3 | +20% | Mission 5 |
+  | Legendary | unique effect + 2 | +35% | Mission 8 |
+  | Mythic | unique effect + 3 | +50% | Mission 13 |
+
+  Odds of the better rarities rise with each mission and with the Rare Weapon Sensor upgrade.
+  Weapons from old saves keep the rarity their perk count gave them.
+- **New perks** next to pierce, fire rate, knockback, freeze and bullet speed: **Burn** (damage over 3 s),
+  **Chain** (lightning jumps to nearby enemies), **Crit** (chance of double damage), **+1 Shot**,
+  **Homing**, **Kill +% Shield** (kills recharge your shield) and **Volatile** (kills explode, hurting
+  enemies nearby).
+- **10 Legendary/Mythic uniques**, each with a fixed effect: Peacemaker, Leech and Hornet (blasters),
+  Dragon Breath and Thunderclap (shotguns), Widowmaker (grenade), Sunlance (laser), Stormcaller (pulse
+  gun), Bouncer (pulse shotgun) and Mincer (shredder).
 
 The game's art is fixed at 800×600, so fullscreen scales it up: text and menus stay sharp, sprites are
 scaled, and black bars fill the sides of widescreen monitors.
@@ -62,6 +83,9 @@ your `winbuild/ruffle` (patched Ruffle checkout) and `winbuild/toolchain` into `
 | Tier odds per mission | `mod_src/Scenes/MainScene.as` → `extraTierWeights()` |
 | Map size, enemy pools, room difficulty, random seed | `modtools/gen_missions.py` → `MISSIONS` |
 | Briefing text | `mod_src/Objects/CommWindow.as` → `extraBriefings` |
+| Rarity colours, damage bonus, perk count, value | `mod_src/Weapons/WeaponBase.as` (`rarityColors`, `rarityDamage`, `rarityPerks`, `rarityValue`) |
+| Rarity odds, max rarity per mission, uniques | `mod_src/Weapons/WeaponGenerator.as` (`rarityWeights`, `maxRarity()`, `uniques`) |
+| Perk strength rolls | `mod_src/WeaponPlugin/WeaponPluginSplash.as` → `roll()` |
 
 The `mod_src/` classes are compiled into `original/robokill.swf` with JPEXS (`tools/ffdec-26.3.0`).
 `decompiled/` holds the untouched decompiled source for reference. Edits in `mod_src/` are saved to

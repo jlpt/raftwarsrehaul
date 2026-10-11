@@ -1,0 +1,15 @@
+--- a/InventoryScreen/Inventory.as
++++ b/InventoryScreen/Inventory.as
+@@ -378,6 +378,12 @@
+                                  _loc5_ = _loc5_.replace("<ORANGE>","");
+                                  _loc6_ = 16764727;
+                               }
++                              // MOD: <C:RRGGBB> sets any colour (weapon rarities)
++                              if(_loc5_.indexOf("<C:") == 0 && _loc5_.indexOf(">") == 9)
++                              {
++                                 _loc6_ = parseInt(_loc5_.substr(3,6),16);
++                                 _loc5_ = _loc5_.substr(10);
++                              }
+                               descriptionText[_loc3_][_loc4_].setText(_loc5_,-1,_loc6_);
+                            }
+                         }

@@ -1,0 +1,23 @@
+--- a/ObjectBase/PlayerBase.as
++++ b/ObjectBase/PlayerBase.as
+@@ -1086,7 +1086,8 @@
+                            }
+                         }
+                      }
+-                     weapons[_loc2_].shoot(gs,_loc3_.x,_loc3_.y,handleMouseX + _loc4_.x,handleMouseY + _loc4_.y);
++                     // MOD: fire() adds the multishot perk's extra shots around shoot()
++                     weapons[_loc2_].fire(gs,_loc3_.x,_loc3_.y,handleMouseX + _loc4_.x,handleMouseY + _loc4_.y);
+                      _loc5_ = "Shoot";
+                      if(weapons[_loc2_] is Laser)
+                      {
+@@ -1230,6 +1231,10 @@
+          var _loc13_:Number = NaN;
+          var _loc14_:GameObject = null;
+          var _loc15_:Point = null;
++         if(WeaponGenerator.debugKeys)
++         {
++            WeaponGenerator.debugUpdate(this); // MOD: test keys, debug build only
++         }
+          var _loc1_:int = level / 5;
+          if(_loc1_ >= 7)
+          {
