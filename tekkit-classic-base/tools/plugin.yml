@@ -1,0 +1,3 @@
+name: Dumper
+main: dumper.Dumper
+version: 1.0

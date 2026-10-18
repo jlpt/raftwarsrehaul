@@ -1,0 +1,229 @@
+1	net.minecraft.server.BlockStone	Stone	255	0	true
+2	net.minecraft.server.BlockGrass	Grass Block	255	0	true
+3	net.minecraft.server.BlockDirt	Dirt	255	0	true
+4	net.minecraft.server.Block	Cobblestone	255	0	true
+5	net.minecraft.server.BlockWood	Wooden Planks	255	0	true
+6	net.minecraft.server.BlockSapling	Sapling	0	0	false
+7	net.minecraft.server.Block	Bedrock	255	0	true
+8	net.minecraft.server.BlockFlowing	Water	3	0	false
+9	net.minecraft.server.BlockStationary	Water	3	0	false
+10	net.minecraft.server.BlockFlowing	Lava	255	15	false
+11	net.minecraft.server.BlockStationary	Lava	255	15	false
+12	net.minecraft.server.BlockSand	Sand	255	0	true
+13	net.minecraft.server.BlockGravel	Gravel	255	0	true
+14	net.minecraft.server.BlockOre	Gold Ore	255	0	true
+15	net.minecraft.server.BlockOre	Iron Ore	255	0	true
+16	net.minecraft.server.BlockOre	Coal Ore	255	0	true
+17	net.minecraft.server.BlockLog	Wood	255	0	true
+18	net.minecraft.server.BlockLeaves	Leaves	1	0	true
+19	net.minecraft.server.BlockSponge	Sponge	255	0	true
+20	net.minecraft.server.BlockGlass	Glass	0	0	false
+21	net.minecraft.server.BlockOre	Lapis Lazuli Ore	255	0	true
+22	net.minecraft.server.Block	Lapis Lazuli Block	255	0	true
+23	net.minecraft.server.BlockDispenser	Dispenser	255	0	true
+24	net.minecraft.server.BlockSandStone	Sandstone	255	0	true
+25	net.minecraft.server.BlockNote	Note Block	255	0	true
+26	net.minecraft.server.BlockBed	Bed	0	0	false
+27	net.minecraft.server.BlockMinecartTrack	Powered Rail	0	0	false
+28	net.minecraft.server.BlockMinecartDetector	Detector Rail	0	0	false
+29	net.minecraft.server.BlockPiston	Sticky Piston	0	0	false
+30	net.minecraft.server.BlockWeb	Cobweb	1	0	false
+31	net.minecraft.server.BlockLongGrass	Grass	0	0	false
+32	net.minecraft.server.BlockDeadBush	Dead Bush	0	0	false
+33	net.minecraft.server.BlockPiston	Piston	0	0	false
+34	net.minecraft.server.BlockPistonExtension	null.name	0	0	false
+35	net.minecraft.server.BlockCloth	Wool	255	0	true
+36	net.minecraft.server.BlockPistonMoving	null.name	0	0	false
+37	net.minecraft.server.BlockFlower	Flower	0	0	false
+38	net.minecraft.server.BlockFlower	Rose	0	0	false
+39	net.minecraft.server.BlockMushroom	Mushroom	0	1	false
+40	net.minecraft.server.BlockMushroom	Mushroom	0	0	false
+41	net.minecraft.server.BlockOreBlock	Block of Gold	255	0	true
+42	net.minecraft.server.BlockOreBlock	Block of Iron	255	0	true
+43	net.minecraft.server.BlockStep	tile.stoneSlab.name	255	0	true
+44	net.minecraft.server.BlockStep	tile.stoneSlab.name	255	0	false
+45	net.minecraft.server.Block	Bricks	255	0	true
+46	net.minecraft.server.BlockTNT	TNT	255	0	true
+47	net.minecraft.server.BlockBookshelf	Bookshelf	255	0	true
+48	eloraam.world.BlockCobbleMossifier	Moss Stone	255	0	true
+49	net.minecraft.server.BlockObsidian	Obsidian	255	0	true
+50	net.minecraft.server.BlockTorch	Torch	0	14	false
+51	net.minecraft.server.BlockFire	Fire	0	15	false
+52	net.minecraft.server.BlockMobSpawner	Monster Spawner	0	0	false
+53	net.minecraft.server.BlockStairs	Wooden Stairs	255	0	false
+54	net.minecraft.server.BlockChest	Chest	0	0	false
+55	net.minecraft.server.BlockRedstoneWire	Redstone Dust	0	0	false
+56	net.minecraft.server.BlockOre	Diamond Ore	255	0	true
+57	net.minecraft.server.BlockOreBlock	Block of Diamond	255	0	true
+58	net.minecraft.server.BlockWorkbench	Crafting Table	255	0	true
+59	net.minecraft.server.BlockCrops	Crops	0	0	false
+60	net.minecraft.server.BlockSoil	Farmland	255	0	false
+61	net.minecraft.server.BlockFurnace	Furnace	255	0	true
+62	net.minecraft.server.BlockFurnace	Furnace	255	13	true
+63	net.minecraft.server.BlockSign	Sign	0	0	false
+64	net.minecraft.server.BlockDoor	Wooden Door	0	0	false
+65	net.minecraft.server.BlockLadder	Ladder	0	0	false
+66	net.minecraft.server.BlockMinecartTrack	Rail	0	0	false
+67	net.minecraft.server.BlockStairs	Stone Stairs	255	0	false
+68	net.minecraft.server.BlockSign	Sign	0	0	false
+69	net.minecraft.server.BlockLever	Lever	0	0	false
+70	net.minecraft.server.BlockPressurePlate	Pressure Plate	0	0	false
+71	net.minecraft.server.BlockDoor	Iron Door	0	0	false
+72	net.minecraft.server.BlockPressurePlate	Pressure Plate	0	0	false
+73	net.minecraft.server.BlockRedstoneOre	Redstone Ore	255	0	true
+74	net.minecraft.server.BlockRedstoneOre	Redstone Ore	255	9	true
+75	net.minecraft.server.BlockRedstoneTorch	Redstone Torch	0	0	false
+76	net.minecraft.server.BlockRedstoneTorch	Redstone Torch	0	7	false
+77	net.minecraft.server.BlockButton	Button	0	0	false
+78	net.minecraft.server.BlockSnow	Snow	0	0	false
+79	net.minecraft.server.BlockIce	Ice	3	0	false
+80	net.minecraft.server.BlockSnowBlock	Snow	255	0	true
+81	net.minecraft.server.BlockCactus	Cactus	0	0	false
+82	net.minecraft.server.BlockClay	Clay	255	0	true
+83	net.minecraft.server.BlockReed	Sugar cane	0	0	false
+84	net.minecraft.server.BlockJukeBox	Jukebox	255	0	true
+85	railcraft.common.rails.BlockFenceReplacement	Fence	0	0	false
+86	net.minecraft.server.BlockPumpkin	Pumpkin	255	0	true
+87	net.minecraft.server.BlockBloodStone	Netherrack	255	0	true
+88	net.minecraft.server.BlockSlowSand	Soul Sand	255	0	true
+89	net.minecraft.server.BlockLightStone	Glowstone	255	15	true
+90	net.minecraft.server.BlockPortal	Portal	0	11	false
+91	net.minecraft.server.BlockPumpkin	Jack 'o' Lantern	255	15	true
+92	net.minecraft.server.BlockCake	Cake	0	0	false
+93	net.minecraft.server.BlockDiode	tile.diode.name	0	0	false
+94	net.minecraft.server.BlockDiode	tile.diode.name	0	9	false
+95	net.minecraft.server.BlockLockedChest	Locked chest	255	15	true
+96	net.minecraft.server.BlockTrapdoor	Trapdoor	0	0	false
+97	net.minecraft.server.BlockMonsterEggs	null.name	255	0	true
+98	eloraam.world.BlockBrickMossifier	Stone Bricks	255	0	true
+99	net.minecraft.server.BlockHugeMushroom	Mushroom	255	0	true
+100	net.minecraft.server.BlockHugeMushroom	Mushroom	255	0	true
+101	net.minecraft.server.BlockThinFence	Iron Bars	0	0	false
+102	net.minecraft.server.BlockThinFence	Glass Pane	0	0	false
+103	net.minecraft.server.BlockMelon	Melon	255	0	true
+104	net.minecraft.server.BlockStem	tile.pumpkinStem.name	0	0	false
+105	net.minecraft.server.BlockStem	tile.pumpkinStem.name	0	0	false
+106	net.minecraft.server.BlockVine	Vines	0	0	false
+107	net.minecraft.server.BlockFenceGate	Fence Gate	0	0	false
+108	net.minecraft.server.BlockStairs	Brick Stairs	255	0	false
+109	net.minecraft.server.BlockStairs	Stone Brick Stairs	255	0	false
+110	net.minecraft.server.BlockMycel	Mycelium	255	0	true
+111	net.minecraft.server.BlockWaterLily	Lily Pad	0	0	false
+112	net.minecraft.server.Block	Nether Brick	255	0	true
+113	net.minecraft.server.BlockFence	Nether Brick Fence	0	0	false
+114	net.minecraft.server.BlockStairs	Nether Brick Stairs	255	0	false
+115	net.minecraft.server.BlockNetherWart	Nether Wart	0	0	false
+116	net.minecraft.server.BlockEnchantmentTable	Enchantment Table	0	0	false
+117	net.minecraft.server.BlockBrewingStand	tile.brewingStand.name	0	1	false
+118	net.minecraft.server.BlockCauldron	Cauldron	0	0	false
+119	net.minecraft.server.BlockEnderPortal	null.name	0	15	false
+120	net.minecraft.server.BlockEnderPortalFrame	tile.endPortalFrame.name	0	1	false
+121	net.minecraft.server.Block	End Stone	255	0	true
+122	net.minecraft.server.BlockDragonEgg	Dragon Egg	0	1	false
+123	net.minecraft.server.BlockRedstoneLamp	Redstone Lamp	255	0	true
+124	net.minecraft.server.BlockRedstoneLamp	Redstone Lamp	255	15	true
+126	ee.BlockEEStone	tile.eeStone.name	255	0	true
+127	ee.BlockEEPedestal	tile.eePedestal.name	0	0	false
+128	ee.BlockEEChest	tile.eeChest.name	0	0	false
+129	ee.BlockEETorch	tile.eeTorch.name	0	0	false
+130	ee.BlockEEDevice	tile.eeDevice.name	0	0	false
+133	eloraam.core.BlockMultipart	null.name	0	0	false
+134	eloraam.control.BlockPeripheral	null.name	255	0	true
+135	net.minecraft.server.powercrystals.netherores.BlockNetherOres	tile.blockNetherOres.name	255	0	true
+136	eloraam.base.BlockMicro	Red Alloy Wire	0	0	false
+137	eloraam.base.BlockAppliance	null.name	255	0	true
+138	eloraam.logic.BlockLogic	null.name	0	9	false
+139	eloraam.world.BlockCustomFlower	Indigo Flower	0	0	false
+140	eloraam.world.BlockCustomOre	tile.rpores.name	255	0	true
+141	eloraam.world.BlockCustomLeaves	Leaves	1	0	true
+142	eloraam.world.BlockCustomStone	tile.rpstone.name	255	0	true
+143	eloraam.world.BlockCustomLog	Rubberwood	255	0	true
+144	eloraam.world.BlockCustomCrops	null.name	0	0	false
+145	eloraam.world.BlockStorage	null.name	255	0	true
+146	eloraam.lighting.BlockLamp	tile.rplampon.name	255	15	true
+147	eloraam.lighting.BlockLamp	tile.rplampoff.name	255	0	true
+148	eloraam.core.BlockMultipart	null.name	0	0	false
+150	eloraam.machine.BlockMachine	tile.rpmachine.name	255	0	true
+151	eloraam.machine.BlockMachinePanel	null.name	0	0	false
+152	eloraam.machine.BlockFrame	Support Frame	0	0	false
+153	buildcraft.factory.BlockQuarry	tile.machineBlock.name	255	0	true
+154	buildcraft.builders.BlockMarker	tile.markerBlock.name	0	7	false
+155	buildcraft.builders.BlockFiller	tile.fillerBlock.name	255	0	true
+156	buildcraft.transport.LegacyBlock	null.name	255	0	true
+157	buildcraft.builders.BlockBuilder	tile.builderBlock.name	255	0	true
+158	buildcraft.builders.BlockTemplate	tile.templateBlock.name	255	0	true
+159	buildcraft.transport.LegacyBlock	null.name	255	0	true
+160	buildcraft.factory.BlockFrame	tile.frameBlock.name	0	0	false
+161	buildcraft.energy.BlockEngine	null.name	0	0	false
+162	buildcraft.energy.BlockOilFlowing	tile.oilMoving.name	3	0	false
+163	buildcraft.energy.BlockOilStill	tile.oilStill.name	3	0	false
+164	buildcraft.factory.BlockPump	tile.pumpBlock.name	255	0	true
+165	buildcraft.factory.BlockTank	tile.tankBlock.name	0	0	false
+166	buildcraft.transport.BlockGenericPipe	null.name	0	0	false
+167	buildcraft.factory.BlockRefinery	tile.refineryBlock.name	0	0	false
+169	buildcraft.factory.BlockAutoWorkbench	tile.autoWorkbenchBlock.name	255	0	true
+170	buildcraft.transport.LegacyBlock	null.name	255	0	true
+171	buildcraft.factory.BlockPlainPipe	tile.plainPipeBlock.name	0	0	false
+172	buildcraft.transport.LegacyBlock	null.name	255	0	true
+173	buildcraft.transport.LegacyBlock	null.name	255	0	true
+174	buildcraft.factory.BlockMiningWell	tile.miningWellBlock.name	255	0	true
+175	buildcraft.transport.LegacyBlock	null.name	255	0	true
+176	buildcraft.transport.LegacyBlock	null.name	255	0	true
+177	eloraam.logic.BlockLogic	null.name	0	9	false
+178	codechicken.enderstorage.BlockEnderChest	Ender Chest	0	0	false
+179	buildcraft.additionalpipes.chunkloader.BlockChunkLoader	tile.Teleport Tether.name	255	0	true
+181	cpw.mods.ironchest.BlockIronChest	tile.IronChest.name	0	0	false
+183	cpw.mods.compactsolars.BlockCompactSolar	tile.CompactSolar.name	255	0	true
+187	ic2chargingbench.common.BlockChargingBench	null.name	255	0	true
+188	ic2.advancedmachines.BlockAdvancedMachines	null.name	255	0	true
+190	powercrystals.powerconverters.BlockPowerConverter	tile.powerConverter.name	255	0	true
+192	nuclearcontrol.BlockNuclearControlMain	tile.blockThermalMonitor.name	0	0	false
+194	immibis.tubestuff.BlockTubestuff	null.name	255	0	true
+206	railcraft.common.rails.BlockTrack	tile.railcraftTrack.name	0	0	false
+207	dan200.computer.shared.BlockComputer	tile.computer.name	0	0	false
+208	dan200.computer.shared.BlockPeripheral	tile.diskdrive.name	0	0	false
+209	railcraft.common.structures.BlockStructure	tile.structureBlock.name	0	0	false
+211	railcraft.common.detector.BlockDetector	tile.cartDetector.name	255	0	true
+212	railcraft.common.rails.BlockRailElevator	tile.elevatorRail.name	0	0	false
+213	railcraft.common.utility.BlockUtility	tile.blockUtility.name	255	0	true
+214	railcraft.common.cube.BlockCube	tile.blockRailcraftCube.name	255	0	true
+215	ccSensors.shared.BlockSensor	tile.computersensor.name	0	0	false
+216	dan200.turtle.shared.BlockTurtle	tile.turtle.name	0	0	false
+217	ic2.common.BlockBarrel	null.name	255	0	true
+218	ic2.common.BlockCrop	tile.blockCrop.name	0	0	false
+219	ic2.common.BlockLuminator	tile.blockLuminatorD.name	0	0	false
+220	ic2.common.BlockScaffold	tile.blockScaffold.name	0	0	false
+221	ic2.common.BlockWall	tile.blockWall.name	255	0	true
+222	ic2.common.BlockFoam	tile.blockFoam.name	0	0	false
+223	ic2.common.BlockMachine2	null.name	255	0	true
+224	ic2.common.BlockMetal	null.name	255	0	true
+225	ic2.common.BlockPersonal	null.name	255	0	true
+226	ic2.common.BlockLuminator	tile.blockLuminator.name	0	15	false
+227	ic2.common.BlockElectric	null.name	255	0	true
+228	ic2.common.BlockCable	null.name	0	0	false
+229	ic2.common.BlockIC2Door	tile.blockDoorAlloy.name	0	0	false
+230	ic2.common.BlockTexGlass	tile.blockAlloyGlass.name	0	0	false
+231	ic2.common.BlockTex	tile.blockAlloy.name	255	0	true
+232	ic2.common.BlockPoleFence	tile.blockFenceIron.name	0	0	false
+233	ic2.common.BlockReactorChamber	tile.blockReactorChamber.name	255	0	true
+234	ic2.common.BlockRubberSheet	tile.blockRubber.name	0	0	false
+235	ic2.common.BlockScaffold	tile.blockIronScaffold.name	0	0	false
+236	ic2.common.BlockDynamite	tile.blockDynamite.name	0	0	false
+237	ic2.common.BlockITNT	tile.blockNuke.name	255	0	true
+238	ic2.common.BlockDynamite	tile.blockDynamiteRemote.name	0	0	false
+239	ic2.common.BlockITNT	tile.blockITNT.name	255	0	true
+240	ic2.common.BlockResin	tile.blockHarz.name	0	0	false
+241	ic2.common.BlockRubSapling	tile.blockRubSapling.name	0	0	false
+242	ic2.common.BlockRubLeaves	Leaves	1	0	false
+243	ic2.common.BlockRubWood	tile.blockRubWood.name	255	0	true
+244	ic2.common.BlockMiningTip	tile.blockMiningTip.name	255	0	true
+245	ic2.common.BlockMiningPipe	tile.blockMiningPipe.name	0	0	false
+246	ic2.common.BlockGenerator	null.name	255	0	true
+247	ic2.common.BlockTex	tile.blockOreUran.name	255	0	true
+248	ic2.common.BlockTex	tile.blockOreTin.name	255	0	true
+249	ic2.common.BlockTex	tile.blockOreCopper.name	255	0	true
+250	ic2.common.BlockMachine	null.name	255	0	true
+253	mffs.BlockMachine	null.name	255	0	true
+254	mffs.BlockUpgrades	null.name	255	0	true
+255	mffs.BlockForceField	null.name	0	0	false
+4095	immibis.chunkloader.BlockChunkLoader	null.name	255	0	true
